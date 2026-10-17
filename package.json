@@ -18,11 +18,19 @@
     "files": [
       "main.js",
       "preload.js",
+      "voice.js",
       "index.html",
       "app.js",
       "web.js",
+      "speech.js",
+      "ai.js",
+      "ai-logo.png",
       "icon.png",
-      "lib/**"
+      "lib/**",
+      "!node_modules/onnxruntime-web/**",
+      "!node_modules/onnxruntime-node/bin/napi-v*/linux/**",
+      "!node_modules/onnxruntime-node/bin/napi-v*/darwin/**",
+      "!node_modules/onnxruntime-node/bin/napi-v*/win32/x64/**"
     ],
     "win": {
       "target": [
@@ -40,7 +48,7 @@
         }
       ],
       "icon": "build/icon.ico",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": true
     },
     "portable": {
       "requestExecutionLevel": "user",
@@ -67,6 +75,17 @@
         "description": "PDF belgesi",
         "role": "Editor"
       }
-    ]
+    ],
+    "asarUnpack": [
+      "node_modules/onnxruntime-node/bin/**",
+      "node_modules/sharp/**",
+      "node_modules/@img/**"
+    ],
+    "npmRebuild": false
+  },
+  "dependencies": {
+    "@huggingface/transformers": "4.3.1",
+    "onnxruntime-node": "1.30.0",
+    "espeak-ng": "1.0.2"
   }
 }

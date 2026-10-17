@@ -52,6 +52,13 @@ else {
 
 // PDF içindeki web bağlantıları varsayılan tarayıcıda açılır; yalnızca http(s) ve e-posta.
 ipcMain.handle('open-external', (_e, url) => { if (typeof url === 'string' && /^(https?:|mailto:)/i.test(url)) shell.openExternal(url); return true; });
+// Yerel ses: Whisper (konuşma tanıma) ve Piper (Türkçe konuşma). Ağır modüller ilk kullanımda yüklenir.
+const voice = require('./voice');
+voice.setProgress((p) => { if (win && !win.isDestroyed()) win.webContents.send('voice-progress', p); });
+ipcMain.handle('voice-status', () => voice.status());
+ipcMain.handle('voice-prepare', () => voice.prepare());
+ipcMain.handle('voice-stt', (_e, pcm) => voice.stt(pcm));
+ipcMain.handle('voice-tts', (_e, text, rate) => voice.tts(text, rate));
 // Varsayılan PDF uygulaması: Windows 11 seçimi kullanıcıya bırakır; ilgili ayar sayfası PDF Kalemi'ye açılır.
 ipcMain.handle('open-default-apps', () => {
   if (process.env.PORTABLE_EXECUTABLE_FILE || !app.isPackaged) return { portable: true };

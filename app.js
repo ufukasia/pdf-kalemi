@@ -1408,5 +1408,5 @@ window.desktop.onOpenFile((f) => { if (f) loadPdf(f.bytes, f.name, false, f.path
   else await loadPdf(await makeSample(), 'kareli-sayfa.pdf', true);
   viewer.focus();
 })();
-window.__app = { state, loadPdf, buildPdf, undo, redo, setTool, setNib, fitWidth, currentIndex, goBack, goPage, snapTop };
+window.__app = { state, toast, loadPdf, buildPdf, undo, redo, setTool, setNib, fitWidth, currentIndex, goBack, goPage, snapTop };
 })();

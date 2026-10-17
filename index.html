@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="tr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'self' blob: data:; manifest-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'self' blob: data: https://openrouter.ai https://*.speech.microsoft.com https://api.elevenlabs.io; media-src 'self' blob: data:; manifest-src 'self'">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <meta name="theme-color" content="#1c2027">
@@ -178,6 +178,77 @@ body.pinned #viewer { top: var(--barH, 56px); }
 body.pinned .side { top: var(--barH, 56px); }
 body.pinned #grip { display: none; }
 body.pinned #curtain.open #bar { box-shadow: none; border-bottom: 1px solid var(--line); }
+
+/* Yapay zeka balonu: sahnede sürüklenebilir; durumuna göre renk ve hareket değiştirir */
+#aiFab { position: fixed; left: 0; top: 0; z-index: 9; width: 60px; height: 60px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; touch-action: none; color: #fff;
+  display: flex; align-items: center; justify-content: center; opacity: .96; background: #fff;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .35), 0 0 0 2px rgba(91, 76, 240, .45); transition: box-shadow .08s, opacity .2s; }
+#aiFab .i-logo { width: 48px; height: 48px; display: block; pointer-events: none; -webkit-user-drag: none; }
+#aiFab .badge { position: absolute; right: -3px; bottom: -3px; width: 24px; height: 24px; border-radius: 50%; background: #5b4cf0; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0, 0, 0, .35); }
+#aiFab .badge svg { width: 14px; height: 14px; }
+#aiFab[data-state="listening"] .badge, #aiFab[data-state="thinking"] .badge, #aiFab[data-state="speaking"] .badge { display: flex; }
+#aiFab[data-state="listening"] .badge { background: #ec2552; }
+#aiFab[hidden] { display: none; }
+#aiFab:hover { opacity: 1; }
+#aiFab.drag { opacity: .75; cursor: grabbing; transition: none; }
+#aiFab svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; display: none; }
+#aiFab[data-state="listening"] .i-mic, #aiFab[data-state="thinking"] .i-stop, #aiFab[data-state="speaking"] .i-stop { display: block; }
+#aiFab[data-state="listening"] { box-shadow: 0 8px 22px rgba(236, 37, 82, .5), 0 0 0 3px #ec2552, 0 0 0 calc(6px + var(--lvl, 0) * 24px) rgba(255, 45, 85, .28); }
+#aiFab[data-state="thinking"]::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 3px solid transparent; border-top-color: #a99cff; border-right-color: #a99cff; animation: aispin .8s linear infinite; }
+#aiFab[data-state="speaking"] { animation: aipulse 1.2s ease-in-out infinite; }
+@keyframes aispin { to { transform: rotate(360deg); } }
+@keyframes aipulse { 50% { box-shadow: 0 8px 22px rgba(0, 0, 0, .35), 0 0 0 2px rgba(91, 76, 240, .6), 0 0 0 16px rgba(140, 125, 255, .22); } }
+.ai-keyform { display: flex; gap: 8px; margin-top: 8px; }
+.ai-ctl { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 4px; }
+#aiPanel .ai-ctl .btn { width: auto; height: 36px; padding: 0 14px; }
+.ai-review textarea { display: block; width: 100%; font: inherit; font-size: 15px; line-height: 1.45; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--accent); background: var(--ground); color: var(--fg); resize: vertical; min-height: 44px; outline: none; -webkit-user-select: text; user-select: text; }
+.ai-review label { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.ai-review label input { width: 18px; height: 18px; accent-color: var(--accent); }
+.ai-turn img.off { opacity: .25; filter: grayscale(1); }
+#aiFab[data-state="review"] { box-shadow: 0 8px 22px rgba(0, 0, 0, .35), 0 0 0 3px #f5a524; }
+.ai-keyform input { flex: 1; min-width: 0; font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--accent); background: var(--ground); color: var(--fg); outline: none; }
+.ai-keyform .btn { width: auto; height: 36px; padding: 0 14px; }
+.ai-turn.hint .ai-q { font-style: normal; font-weight: 600; color: var(--fg); }
+#rowVoiceModels { display: none; }
+.localvoice #rowVoiceModels { display: flex; }
+#aiPanel { position: fixed; z-index: 10; display: flex; flex-direction: column; background: var(--bar); color: var(--fg); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 14px 44px rgba(0, 0, 0, .35); overflow: hidden; }
+#aiPanel[hidden] { display: none; }
+#aiPanel header { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 14px; border-bottom: 1px solid var(--line); flex: none; }
+#aiPanel header b { font-size: 15px; }
+#aiStatus { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#aiPanel header button { flex: none; width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; font-size: 20px; display: inline-flex; align-items: center; justify-content: center; }
+#aiPanel header button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#aiPanel header button:hover { background: var(--hover); color: var(--fg); }
+#aiLog { flex: 1; overflow: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 16px; min-height: 64px; overscroll-behavior: contain; touch-action: pan-y; }
+#aiLog:empty::before { content: "Balona dokun ve sorunu söyle. Ekrandaki slayt da soruyla birlikte gönderilir."; color: var(--muted); font-size: 13px; }
+.ai-turn img { width: 112px; border-radius: 6px; border: 1px solid var(--line); display: block; margin-bottom: 6px; background: #fff; }
+.ai-q { color: var(--muted); font-size: 13px; font-style: italic; margin-bottom: 4px; }
+.ai-a { font-size: 15px; line-height: 1.55; white-space: pre-wrap; -webkit-user-select: text; user-select: text; }
+.ai-a.err { color: #e5484d; }
+.ai-m { color: var(--muted); font-size: 11px; margin-top: 4px; }
+.ai-m:empty { display: none; }
+.ai-link { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+#aiForm { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); flex: none; }
+#aiForm input { flex: 1; min-width: 0; font: inherit; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--ground); color: var(--fg); outline: none; }
+#aiForm input:focus { border-color: var(--accent); }
+#aiForm .btn { width: auto; height: 38px; padding: 0 16px; }
+.sheet .btn { width: auto; height: 36px; padding: 0 14px; }
+.opt-row { display: flex; gap: 8px; padding: 0 4px 10px; }
+.opt-row input, .opt-row select, .opt-ctl select { flex: 1; min-width: 0; font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--ground); color: var(--fg); }
+.opt-ctl { display: flex; gap: 8px; align-items: center; flex: 0 1 300px; min-width: 0; }
+.opt-note { color: var(--muted); font-size: 12px; margin: 8px 4px 4px; line-height: 1.45; }
+.opt-sel { flex: 0 1 260px; min-width: 0; font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--ground); color: var(--fg); }
+.svc { border-top: 1px solid var(--line); padding: 4px; }
+.svc summary { display: flex; align-items: baseline; gap: 8px; padding: 10px 0; cursor: pointer; list-style: none; }
+.svc summary::-webkit-details-marker { display: none; }
+.svc summary::before { content: ""; align-self: center; border-left: 6px solid var(--muted); border-top: 4.5px solid transparent; border-bottom: 4.5px solid transparent; transition: transform .15s; }
+.svc[open] summary::before { transform: rotate(90deg); }
+.svc summary small { color: var(--muted); font-size: 12px; }
+.svc-st { margin-left: auto; color: var(--muted); font-size: 12px; }
+.svc p, .svc ol { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: var(--fg); }
+.svc ol.steps { padding-left: 20px; }
+.svc ol.steps li { margin-bottom: 4px; }
+.svc a { color: var(--accent); }
 
 /* Alttan çekilen ayarlar paneli */
 .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; max-height: 80vh; display: flex; flex-direction: column; background: var(--bar); color: var(--fg); border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; transform: translateY(100%); transition: transform .24s cubic-bezier(.2, .8, .2, 1); will-change: transform; }
@@ -359,6 +430,47 @@ html, body { overscroll-behavior: none; }
           <label class="opt" for="press"><span><b>Basınç hassasiyeti</b><small>Yükseldikçe hafif dokunuş da kalın yazar.</small></span><span class="rng"><input type="range" id="press" min="0" max="100" step="5" value="50"><output id="pressOut" for="press">50</output></span></label>
           <div class="opt"><span><b>Lazerin sönme süresi</b><small>Kalem kalktıktan sonra neon izin ekranda kalma süresi.</small></span><div class="segbtn" id="optLaser" role="group" aria-label="Lazerin sönme süresi"><button type="button" data-v="400">Kısa</button><button type="button" data-v="900">Orta</button><button type="button" data-v="2000">Uzun</button></div></div>
         </section>
+        <section><h3>Yapay zeka</h3>
+          <div class="opt"><span><b>OpenRouter API anahtarı</b><small>Yalnızca bu cihazda saklanır; GitHub'a veya buluta gitmez. Yapıştırınca doğrulanıp kaydedilir. Durum: <span id="aiKeyState"></span></small></span></div>
+          <div class="opt-row"><input type="password" id="aiKey" placeholder="sk-or-…" autocomplete="off" spellcheck="false" aria-label="OpenRouter API anahtarı"><button class="btn" id="aiKeySave" type="button">Kaydet</button><button class="btn" id="aiKeyDel" type="button">Sil</button></div>
+          <div class="opt"><span><b>Model (ücretsiz)</b><small>Ekrandaki slaytı anlayan ücretsiz modeller. Seçilen meşgulse uygulama kendiliğinden başka ücretsiz modele geçer.</small></span><button class="btn" id="aiModels" type="button">Modelleri yenile</button></div>
+          <div class="opt-row"><select id="aiModel" aria-label="Model"></select></div>
+          <label class="opt"><span><b>Sesli cevap</b><small>Cevabı cihazdaki en doğal Türkçe sesle okur.</small></span><input type="checkbox" class="switch" id="aiSpeak"></label>
+          <label class="opt"><span><b>Konuşma bitince onaysız gönder</b><small>Kapalıyken (önerilen) söylediğin soru önce gösterilir; düzeltip "Gönder"e basmadan hiçbir şey gitmez.</small></span><input type="checkbox" class="switch" id="aiAuto"></label>
+          <label class="opt"><span><b>Asistan balonu</b><small>Sahnede sürükleyip istediğin yere koyabileceğin düğme. Kısayol: Y</small></span><input type="checkbox" class="switch" id="aiFabOpt"></label>
+          <p class="opt-note">Soru gönderdiğinde o slaytın görüntüsü ve sorunun metni, cevap üretmesi için OpenRouter üzerinden seçtiğin modele gönderilir. Ücretsiz modellerin sağlayıcıları bu verileri kaydedebilir.</p>
+        </section>
+        <section id="secSes"><h3>Ses</h3>
+          <div class="opt"><span><b>Konuşmayı anlama</b><small id="spSttNote"></small></span><select id="spStt" class="opt-sel" aria-label="Konuşmayı anlama servisi"></select></div>
+          <div class="opt"><span><b>Asistanın sesi</b><small id="spTtsNote"></small></span><select id="spTts" class="opt-sel" aria-label="Asistanın sesi servisi"></select></div>
+          <div class="opt"><span><b>Ses</b><small id="aiVoiceNote"></small></span><span class="opt-ctl"><select id="aiVoice" aria-label="Ses"></select><button class="btn" id="aiTest" type="button">Dinle</button></span></div>
+          <label class="opt" for="aiRate"><span><b>Konuşma hızı</b></span><span class="rng"><input type="range" id="aiRate" min="0.7" max="1.5" step="0.1"><output id="aiRateOut" for="aiRate"></output></span></label>
+          <details class="svc" id="svcAzure"><summary><b>Microsoft Azure Speech</b><span class="svc-st" id="azState"></span></summary>
+            <p>Microsoft'un profesyonel ses hizmeti. Türkçe doğal sesler (Emel, Ahmet) ve iyi Türkçe konuşma tanıma. <b>Ücretsiz katman:</b> ayda 500.000 karakter seslendirme ve 5 saat konuşma tanıma; günde birkaç soru için fazlasıyla yeter.</p>
+            <ol class="steps">
+              <li><a href="#" id="lnkAzure">portal.azure.com</a>'a Microsoft hesabınla gir. Hesabın yoksa <a href="#" id="lnkAzureFree">ücretsiz Azure hesabı</a> aç (kimlik doğrulaması için kart istenebilir; ücretsiz katmanda ücret alınmaz).</li>
+              <li>"Speech service" oluştur: <b>Bölge</b> olarak West Europe, <b>Fiyat katmanı</b> olarak <b>Free F0</b> seç.</li>
+              <li>Oluşan kaynakta sol menüden <b>Keys and Endpoint</b>'e gir: <b>KEY 1</b>'i kopyalayıp aşağıya yapıştır; <b>Location/Region</b>'da yazanı bölge kutusuna yaz.</li>
+            </ol>
+            <div class="opt-row"><input type="password" id="azKey" autocomplete="off" spellcheck="false" aria-label="Azure anahtarı"><input id="azRegion" list="azRegions" autocomplete="off" spellcheck="false" placeholder="Bölge (örnek: westeurope)" aria-label="Azure bölgesi"><datalist id="azRegions"></datalist></div>
+            <div class="opt-row"><button class="btn primary" id="azSave" type="button">Kaydet ve dene</button><button class="btn" id="azDel" type="button">Sil</button></div>
+          </details>
+          <details class="svc" id="svcEleven"><summary><b>ElevenLabs</b> <small>en insansı ses</small><span class="svc-st" id="elState"></span></summary>
+            <p>Duygulu, nefes alan, gerçek insana en yakın sesler. <b>Ücretsiz plan:</b> ayda 10.000 karakter (yaklaşık 30 cevap, yalnızca kişisel kullanım). Ücretli planlar ayda 6 $'dan başlar.</p>
+            <ol class="steps">
+              <li>elevenlabs.io'da hesap aç.</li>
+              <li><a href="#" id="lnkEleven">API Keys</a> sayfasında <b>Create API Key</b> ile anahtar oluştur, kopyalayıp aşağıya yapıştır.</li>
+              <li>"Kaydet ve dene"ye bas; yukarıdaki <b>Ses</b> listesinden beğendiğin sesi seç.</li>
+            </ol>
+            <div class="opt-row"><input type="password" id="elKey" autocomplete="off" spellcheck="false" aria-label="ElevenLabs anahtarı"><select id="elModel" aria-label="ElevenLabs modeli"></select></div>
+            <div class="opt-row"><button class="btn primary" id="elSave" type="button">Kaydet ve dene</button><button class="btn" id="elDel" type="button">Sil</button></div>
+          </details>
+          <details class="svc"><summary><b>API anahtarı nedir?</b></summary>
+            <p>Bir servisin (Azure, ElevenLabs, OpenRouter gibi) seni tanıması için verdiği gizli bir şifredir. PDF Kalemi anahtarı yalnızca bu cihazda saklar ve yalnızca o servisle konuşurken kullanır; başka hiçbir yere göndermez. Anahtarını kimseyle paylaşma. Yanlışlıkla paylaşırsan servisin sayfasından silip yenisini oluşturabilirsin.</p>
+          </details>
+          <div class="opt" id="rowVoiceModels"><span><b>Bu bilgisayardaki ses modelleri</b><small id="aiVoiceSt"></small></span><button class="btn" id="aiVoicePrep" type="button">Şimdi indir</button></div>
+          <p class="opt-note">Azure ya da ElevenLabs çalışmazsa (internet yok, kota doldu) asistan susmaz: bu bilgisayardaki ya da cihazın kendi sesine geçer.</p>
+        </section>
         <section><h3>Sistem</h3>
           <div class="opt" id="rowDefApp"><span><b>Varsayılan PDF uygulaması</b><small>PDF'lere çift tıklayınca PDF Kalemi ile açılsın. Windows son onayı senden ister: açılan sayfada ".pdf" için PDF Kalemi'yi seç.</small></span><button class="btn" id="btnDefApp" type="button">Ayarla</button></div>
         </section>
@@ -375,6 +487,20 @@ html, body { overscroll-behavior: none; }
 </div>
 
 <form id="gotoBox" hidden><label for="gotoNum">Sayfa</label><input id="gotoNum" type="number" min="1" inputmode="numeric"><span id="gotoMax"></span><button class="btn primary" type="submit">Git</button></form>
+<button id="aiFab" type="button" data-state="idle" aria-label="Yapay zekaya sor (Y)" title="Yapay zekaya sor: dokun ve konuş (Y). Sürükleyerek taşı.">
+  <img class="i-logo" src="ai-logo.png" alt="" draggable="false">
+  <span class="badge" aria-hidden="true">
+    <svg class="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+    <svg class="i-stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>
+  </span>
+</button>
+<section id="aiPanel" data-state="idle" aria-label="Yapay zeka asistanı" hidden>
+  <header><b>Asistan</b><span id="aiStatus"></span>
+    <button id="aiClear" type="button" title="Konuşmayı temizle" aria-label="Konuşmayı temizle"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg></button>
+    <button id="aiClose" type="button" title="Kapat" aria-label="Kapat">×</button></header>
+  <div id="aiLog" aria-live="polite"></div>
+  <form id="aiForm"><input id="aiText" type="text" placeholder="Ya da sorunu yaz…" autocomplete="off" aria-label="Soru"><button class="btn primary" type="submit">Sor</button></form>
+</section>
 <div id="status" aria-live="polite"><b id="stPage">1</b><span>/</span><span id="stCount">1</span></div>
 <div id="ring"></div>
 <div id="toast" role="status"></div>
@@ -383,4 +509,6 @@ html, body { overscroll-behavior: none; }
 <script src="lib/pdf.min.js"></script>
 <script src="lib/pdf-lib.min.js"></script>
 <script src="app.js"></script>
+<script src="speech.js"></script>
+<script src="ai.js"></script>
 </body></html>
