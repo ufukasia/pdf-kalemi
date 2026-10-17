@@ -44,7 +44,7 @@ const state = {
   nib: 'fountain', press: 50, hasPressure: false,
   touchDraw: false,
   // Ayarlar paneli (alttan çekilir)
-  opts: { tapNav: true, swipeNav: true, wheelNav: true, links: true, laserHold: 900, theme: 'system' },
+  opts: { tapNav: true, swipeNav: true, wheelNav: true, links: true, laserHold: 900, theme: 'system', barrel: 'lasso' },
   scale: 1,
   pdf: null, bytes: null, name: 'kareli-sayfa.pdf', sample: true,
   pages: [], tops: [],
@@ -213,7 +213,10 @@ function arrowHead(o) {
   const [x1, y1] = o.a, [x2, y2] = o.b, ang = Math.atan2(y2 - y1, x2 - x1), L = Math.max(10, o.w * 5), s = 0.5;
   return [[x2 - L * Math.cos(ang - s), y2 - L * Math.sin(ang - s)], [x2, y2], [x2 - L * Math.cos(ang + s), y2 - L * Math.sin(ang + s)]];
 }
+const rotPt = (q, cx, cy, t) => { const c = Math.cos(t), s = Math.sin(t), x = q[0] - cx, y = q[1] - cy; return [cx + x * c - y * s, cy + x * s + y * c]; };
+const midOf = (o) => [(o.a[0] + o.b[0]) / 2, (o.a[1] + o.b[1]) / 2];
 function drawShape(ctx, o) {
+  if (o.rot) { const [cx, cy] = midOf(o); ctx.translate(cx, cy); ctx.rotate(o.rot); ctx.translate(-cx, -cy); } // döndürülmüş dikdörtgen/elips
   const [x1, y1] = o.a, [x2, y2] = o.b;
   ctx.lineWidth = o.w; ctx.beginPath();
   if (o.t === 'line' || o.t === 'arrow') {
@@ -239,6 +242,7 @@ function drawObj(ctx, o) {
 function bboxOf(o) {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, pad;
   if (o.pts) { for (const p of o.pts) { if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]; if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1]; } pad = o.t === 'hl' ? o.w : o.k ? reachOf(o) + 1.5 : o.w * 1.1 + 1; }
+  else if (o.rot) { const [cx, cy] = midOf(o); for (const q of [o.a, [o.b[0], o.a[1]], o.b, [o.a[0], o.b[1]]]) { const p = rotPt(q, cx, cy, o.rot); x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); } pad = o.w + 1; }
   else { x0 = Math.min(o.a[0], o.b[0]); x1 = Math.max(o.a[0], o.b[0]); y0 = Math.min(o.a[1], o.b[1]); y1 = Math.max(o.a[1], o.b[1]); pad = o.w + (o.t === 'arrow' ? Math.max(10, o.w * 5) : 0) + 1; }
   return [x0 - pad, y0 - pad, x1 + pad, y1 + pad];
 }
@@ -251,6 +255,7 @@ function polyDist(poly, x, y) { let d = Infinity; for (let i = 1; i < poly.lengt
 function hit(o, x, y, r) {
   const bb = o.bb; if (x < bb[0] - r || x > bb[2] + r || y < bb[1] - r || y > bb[3] + r) return false;
   if (o.pts) { const tol = r + reachOf(o); if (o.pts.length === 1) return Math.hypot(x - o.pts[0][0], y - o.pts[0][1]) <= tol; return polyDist(o.pts, x, y) <= tol; }
+  if (o.rot) { const [cx, cy] = midOf(o); [x, y] = rotPt([x, y], cx, cy, -o.rot); } // noktayı şeklin kendi eksenine çevir
   const tol = r + o.w / 2, [x1, y1] = o.a, [x2, y2] = o.b;
   if (o.t === 'line') return distSeg(x, y, x1, y1, x2, y2) <= tol;
   if (o.t === 'arrow') return distSeg(x, y, x1, y1, x2, y2) <= tol || polyDist(arrowHead(o), x, y) <= tol;
@@ -294,7 +299,7 @@ class PageView {
     }).catch((err) => console.error('Bağlantılar okunamadı', err));
   }
   deactivate() {
-    if (!this.active) return; this.active = false; this.token++;
+    if (!this.active) return; if (sel && sel.pv === this) clearSel(); this.active = false; this.token++;
     if (this.task) { try { this.task.cancel(); } catch (e) {} this.task = null; }
     if (this.pdfCanvas) { this.pdfCanvas.remove(); this.pdfCanvas.width = 0; this.pdfCanvas = null; }
     this.ink.remove(); this.ink.width = 0; this.ctx = null;
@@ -347,7 +352,10 @@ function pushAction(a) { state.dirty = true; scheduleInkSave(); state.undo.push(
 function updateHist() { $('#btnUndo').disabled = !state.undo.length; $('#btnRedo').disabled = !state.redo.length; }
 function revealPage(pv) { const r = pv.el.getBoundingClientRect(), v = viewer.getBoundingClientRect(); if (r.bottom < v.top || r.top > v.bottom) pv.el.scrollIntoView({ block: 'center' }); }
 function undo() {
+  if (sel) clearSel();
   const a = state.undo.pop(); if (!a) return;
+  if (a.k === 'move') { for (const o of a.objs) translateObj(o, -a.dx, -a.dy); a.pv.drawInk(); revealPage(a.pv); state.redo.push(a); state.dirty = true; scheduleInkSave(); updateHist(); return; }
+  if (a.k === 'xform') { applyXform(a, true); a.pv.drawInk(); revealPage(a.pv); state.redo.push(a); state.dirty = true; scheduleInkSave(); updateHist(); return; }
   if (a.k === 'add') { const i = a.pv.objs.indexOf(a.o); if (i >= 0) a.pv.objs.splice(i, 1); }
   else for (let j = a.items.length - 1; j >= 0; j--) a.items[j].pv.objs.splice(a.items[j].idx, 0, a.items[j].o);
   const pvs = a.k === 'add' ? [a.pv] : [...new Set(a.items.map((x) => x.pv))];
@@ -355,7 +363,10 @@ function undo() {
   state.redo.push(a); state.dirty = true; scheduleInkSave(); updateHist();
 }
 function redo() {
+  if (sel) clearSel();
   const a = state.redo.pop(); if (!a) return;
+  if (a.k === 'move') { for (const o of a.objs) translateObj(o, a.dx, a.dy); a.pv.drawInk(); revealPage(a.pv); state.undo.push(a); state.dirty = true; scheduleInkSave(); updateHist(); return; }
+  if (a.k === 'xform') { applyXform(a, false); a.pv.drawInk(); revealPage(a.pv); state.undo.push(a); state.dirty = true; scheduleInkSave(); updateHist(); return; }
   if (a.k === 'add') a.pv.objs.push(a.o);
   else for (const it of a.items) { const i = it.pv.objs.indexOf(it.o); if (i >= 0) it.pv.objs.splice(i, 1); }
   const pvs = a.k === 'add' ? [a.pv] : [...new Set(a.items.map((x) => x.pv))];
@@ -447,7 +458,9 @@ const touches = new Map(); // parmak hareketleri
 
 function pageOf(e) { const el = e.target && e.target.closest ? e.target.closest('.page') : null; return el ? state.pages[+el.dataset.i] : null; }
 function toolFor(e) {
-  if (e.pointerType === 'pen' && (e.button === 5 || (e.buttons & 32) || (e.buttons & 2))) return 'eraser';
+  if (e.pointerType === 'pen' && (e.button === 5 || (e.buttons & 32))) return 'eraser'; // kalemin silgi ucu
+  const side = (e.pointerType === 'pen' && (e.buttons & 2)) || (e.pointerType === 'mouse' && (e.button === 2 || (e.buttons & 2)));
+  if (side) return e.pointerType === 'pen' && state.opts.barrel === 'eraser' ? 'eraser' : 'lasso'; // yan tuş / sağ tuş
   return state.tool;
 }
 function showRing(e, on) {
@@ -465,7 +478,7 @@ function safe(fn) {
 viewer.addEventListener('pointerdown', safe((e) => {
   if (anyDrawerOpen()) { closeCurtain(); closeSides(); e.preventDefault(); return; }
   if (e.pointerType === 'pen') lastPenTime = performance.now();
-  if (e.pointerType === 'touch' && !state.touchDraw) {
+  if (e.pointerType === 'touch' && !state.touchDraw && !onSelection(e)) {
     if (performance.now() - lastPenTime < 700) return; // avuç içi
     try { viewer.setPointerCapture(e.pointerId); } catch (err) {} stopSlide();
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: e.timeStamp, link: linkAt(e), idx: currentIndex(), multi: false });
@@ -474,8 +487,8 @@ viewer.addEventListener('pointerdown', safe((e) => {
   }
   if (e.pointerType === 'mouse' && e.button === 3) { e.preventDefault(); goBack(); return; }
   if (e.pointerType === 'mouse' && e.button === 4) { e.preventDefault(); goForward(); return; }
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-  if (toolFor(e) === 'laser') { if (cur) return; e.preventDefault(); try { viewer.setPointerCapture(e.pointerId); } catch (err) {} laserStart(e); return; }
+  if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
+  if (toolFor(e) === 'laser' && !onSelection(e)) { if (cur) return; e.preventDefault(); try { viewer.setPointerCapture(e.pointerId); } catch (err) {} laserStart(e); return; }
   const pv = pageOf(e); if (!pv || !pv.active || !pv.ctx || cur) return;
   e.preventDefault(); try { viewer.setPointerCapture(e.pointerId); } catch (err) {}
   startStroke(e, pv);
@@ -486,6 +499,7 @@ viewer.addEventListener('pointermove', safe((e) => {
   const t = cur ? cur.tool : toolFor(e);
   showRing(e, t === 'eraser' && e.pointerType !== 'touch');
   showDot(e, t === 'laser' && e.pointerType !== 'touch');
+  if (!cur && sel && e.pointerType !== 'touch') hoverSel(e);
   if (cur && e.pointerId === cur.id) { e.preventDefault(); if (cur.raw) predictInk(e); else moveStroke(e); }
 }));
 // pointerrawupdate ekran karesini beklemeden gelir: kalem ucunun gecikmesini azaltır.
@@ -522,6 +536,20 @@ function startStroke(e, pv) {
   closeCurtain();
   const tool = toolFor(e), r = pv.el.getBoundingClientRect(), p = toPage(e.clientX, e.clientY, r);
   cur = { id: e.pointerId, pv, tool, r, ptype: e.pointerType, dirty: null, obj: null, erased: [], shift: e.shiftKey, link: linkAt(e), x0: e.clientX, y0: e.clientY, t0: e.timeStamp, moved: 0 };
+  if (tool === 'lasso') { clearSel(); flushOvClear(); attachOverlay(pv); ov.cv.style.opacity = '1'; cur.lasso = [p]; return; }
+  if (sel && sel.pv === pv) {
+    const h = handleAt(p);
+    if (h === 'tr') { // sağ üst: döndür (seçimin merkezi etrafında)
+      const cx = (sel.bb[0] + sel.bb[2]) / 2, cy = (sel.bb[1] + sel.bb[3]) / 2;
+      cur.tool = 'rotate'; cur.xf = { op: 'rotate', cx, cy, a0: Math.atan2(p[1] - cy, p[0] - cx), t: 0 }; sel.view = { bb: sel.bb.slice(), cx, cy, t: 0 }; return;
+    }
+    if (h) { // diğer köşeler: karşı köşe sabit, orantılı büyüt/küçült
+      const b = sel.bb, ax = h === 'tl' || h === 'bl' ? b[2] : b[0], ay = h === 'tl' ? b[3] : b[1];
+      cur.tool = 'scale'; cur.xf = { op: 'scale', ax, ay, d0: Math.max(1e-3, Math.hypot(p[0] - ax, p[1] - ay)), s: 1, h }; return;
+    }
+    if (insideSel(p)) { cur.tool = 'move'; cur.drag = true; cur.p0 = p; cur.dx = 0; cur.dy = 0; return; }
+  }
+  if (sel) clearSel();
   const meta = TOOLS[tool];
   if (tool === 'eraser') { showRing(e, true); eraseAt(p[0], p[1]); return; }
   const color = state.colors[meta.ck], w = state.sizes[sizeKey(tool)];
@@ -588,6 +616,28 @@ function moveStroke(e) {
   c.moved = Math.max(c.moved, Math.hypot(e.clientX - c.x0, e.clientY - c.y0));
   if (c.laser) { laserMove(c, e); return; }
   const list = (e.getCoalescedEvents && e.getCoalescedEvents()) || [], evs = list.length ? list : [e];
+  if (c.lasso) { for (const ev of evs) c.lasso.push(toPage(ev.clientX, ev.clientY, c.r)); drawLasso(c.lasso); return; }
+  if (c.xf) {
+    const p = toPage(e.clientX, e.clientY, c.r), x = c.xf;
+    if (x.op === 'rotate') {
+      let t = Math.atan2(p[1] - x.cy, p[0] - x.cx) - x.a0;
+      while (t - x.t > Math.PI) t -= 2 * Math.PI; while (t - x.t < -Math.PI) t += 2 * Math.PI; // ±180°'de sıçrama olmasın
+      const deg = t * 180 / Math.PI, near = Math.round(deg / 90) * 90; if (Math.abs(deg - near) < 4) t = near * Math.PI / 180; // düz açılara oturt
+      for (const o of sel.objs) rotateObj(o, x.cx, x.cy, t - x.t); x.t = t; sel.view.t = t;
+      sel.label = Math.round(((t * 180 / Math.PI) % 360 + 540) % 360 - 180) + '°';
+    } else {
+      const s = clamp(Math.hypot(p[0] - x.ax, p[1] - x.ay) / x.d0, 0.1, 10);
+      for (const o of sel.objs) scaleObj(o, x.ax, x.ay, s / x.s); x.s = s; sel.bb = selBox(sel.objs);
+      sel.label = Math.round(s * 100) + '%';
+    }
+    redrawSelSoon(); return;
+  }
+  if (c.drag) {
+    const p = toPage(e.clientX, e.clientY, c.r), dx = p[0] - c.p0[0], dy = p[1] - c.p0[1];
+    for (const o of sel.objs) translateObj(o, dx - c.dx, dy - c.dy);
+    sel.bb = [sel.bb[0] + dx - c.dx, sel.bb[1] + dy - c.dy, sel.bb[2] + dx - c.dx, sel.bb[3] + dy - c.dy];
+    c.dx = dx; c.dy = dy; redrawSelSoon(); return;
+  }
   if (c.tool === 'eraser') { for (const ev of evs) { const p = toPage(ev.clientX, ev.clientY, c.r); eraseAt(p[0], p[1]); } return; }
   if (!o) return;
   if (c.trk) {
@@ -629,10 +679,135 @@ function eraseAt(x, y) {
   }
   if (any) pv.drawInk();
 }
+/* ---------- Seç ve taşı (kement) ----------
+   Kalemin yan tuşuna basılı tutarak (ya da farenin sağ tuşuyla) bir alanın etrafını çiz: noktalarının en az
+   yarısı içeride kalan yazı ve çizimler seçilir. Seçimin içinden tutup sürükle: taşınır (tek geri al adımı).
+   Delete siler, Esc ya da seçimin dışına dokunmak bırakır. */
+let sel = null, selRaf = 0;
+function inPoly(x, y, P) {
+  let c = false;
+  for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) c = !c; }
+  return c;
+}
+function objIn(o, P) {
+  const pts = o.pts || (o.t === 'rect' || o.t === 'ellipse' ? [o.a, o.b, [(o.a[0] + o.b[0]) / 2, (o.a[1] + o.b[1]) / 2]] : [o.a, o.b, [(o.a[0] + o.b[0]) / 2, (o.a[1] + o.b[1]) / 2]]);
+  const step = Math.max(1, Math.floor(pts.length / 60)); let n = 0, t = 0;
+  for (let i = 0; i < pts.length; i += step) { t++; if (inPoly(pts[i][0], pts[i][1], P)) n++; }
+  return t > 0 && n / t >= 0.5;
+}
+function translateObj(o, dx, dy) {
+  if (o.pts) for (const q of o.pts) { q[0] += dx; q[1] += dy; }
+  else { o.a = [o.a[0] + dx, o.a[1] + dy]; o.b = [o.b[0] + dx, o.b[1] + dy]; }
+  delete o._S; o.bb = bboxOf(o); // mürekkep örnekleri yeni yerinde yeniden hesaplanır
+}
+function selBox(objs) { let bb = null; for (const o of objs) bb = unionBB(bb, o.bb || bboxOf(o)); return bb; }
+function scaleObj(o, ax, ay, s) {
+  if (o.pts) for (const q of o.pts) { q[0] = ax + (q[0] - ax) * s; q[1] = ay + (q[1] - ay) * s; }
+  else { o.a = [ax + (o.a[0] - ax) * s, ay + (o.a[1] - ay) * s]; o.b = [ax + (o.b[0] - ax) * s, ay + (o.b[1] - ay) * s]; }
+  o.w *= s; delete o._S; o.bb = bboxOf(o); // kalem kalınlığı da orantılı değişir
+}
+function rotateObj(o, cx, cy, t) {
+  if (o.pts) for (const q of o.pts) { const r = rotPt(q, cx, cy, t); q[0] = r[0]; q[1] = r[1]; }
+  else if (o.t === 'rect' || o.t === 'ellipse') {
+    const m = midOf(o), hx = (o.b[0] - o.a[0]) / 2, hy = (o.b[1] - o.a[1]) / 2, n = rotPt(m, cx, cy, t);
+    o.a = [n[0] - hx, n[1] - hy]; o.b = [n[0] + hx, n[1] + hy]; o.rot = (o.rot || 0) + t;
+  } else { o.a = rotPt(o.a, cx, cy, t); o.b = rotPt(o.b, cx, cy, t); }
+  delete o._S; o.bb = bboxOf(o);
+}
+function applyXform(a, inverse) {
+  for (const o of a.objs) {
+    if (a.op === 'rotate') rotateObj(o, a.cx, a.cy, inverse ? -a.t : a.t);
+    else scaleObj(o, a.ax, a.ay, inverse ? 1 / a.s : a.s);
+  }
+}
+// Seçim çerçevesinin köşeleri (sırasıyla sol üst, sağ üst, sağ alt, sol alt); döndürülürken çerçeve de döner.
+function selFrame() {
+  const m = 5 / state.scale, v = sel.view, [x0, y0, x1, y1] = v ? v.bb : sel.bb;
+  const P = [[x0 - m, y0 - m], [x1 + m, y0 - m], [x1 + m, y1 + m], [x0 - m, y1 + m]];
+  return v ? P.map((q) => rotPt(q, v.cx, v.cy, v.t)) : P;
+}
+const HANDLES = ['tl', 'tr', 'br', 'bl'];
+function handleAt(p) {
+  const F = selFrame(), tol = 16 / state.scale; let best = null, bd = tol;
+  F.forEach((q, i) => { const d = Math.hypot(p[0] - q[0], p[1] - q[1]); if (d <= bd) { bd = d; best = HANDLES[i]; } });
+  return best;
+}
+const CURSORS = { tl: 'nwse-resize', br: 'nwse-resize', bl: 'nesw-resize', tr: 'grab', in: 'move' };
+function hoverSel(e) {
+  const pv = pageOf(e), p = pv === sel.pv ? toPage(e.clientX, e.clientY, pv.el.getBoundingClientRect()) : null;
+  const h = p ? (handleAt(p) || (insideSel(p) ? 'in' : null)) : null;
+  viewer.style.cursor = h ? CURSORS[h] : '';
+  if (h !== sel.hover) { sel.hover = h; drawSel(); }
+}
+function insideSel(p) { const m = 6 / state.scale, b = sel.bb; return p[0] >= b[0] - m && p[0] <= b[2] + m && p[1] >= b[1] - m && p[1] <= b[3] + m; }
+function onSelection(e) {
+  if (!sel || toolFor(e) === 'lasso') return false;
+  const pv = pageOf(e); if (!pv || pv !== sel.pv) return false; const p = toPage(e.clientX, e.clientY, pv.el.getBoundingClientRect()); return insideSel(p) || !!handleAt(p);
+}
+function drawLasso(P) {
+  clearOverlayNow(); const c = ov.cx, s = state.scale;
+  c.save(); c.strokeStyle = '#1f6feb'; c.fillStyle = 'rgba(31, 111, 235, .06)'; c.lineWidth = 1.6 / s; c.setLineDash([6 / s, 4 / s]); c.lineJoin = 'round';
+  c.beginPath(); c.moveTo(P[0][0], P[0][1]); for (let i = 1; i < P.length; i++) c.lineTo(P[i][0], P[i][1]); c.closePath(); c.fill(); c.stroke(); c.restore();
+}
+// Seçim çerçevesi: sağ üstte döndürme tutamağı (yuvarlak, oklu), diğer köşelerde boyut tutamakları (kare).
+function drawSel() {
+  clearOverlayNow(); if (!sel) return;
+  attachOverlay(sel.pv); ov.cv.style.opacity = '1';
+  const c = ov.cx, s = state.scale, F = selFrame(), blue = '#1f6feb';
+  c.save(); c.fillStyle = 'rgba(31, 111, 235, .07)'; c.strokeStyle = blue; c.lineWidth = 1.6 / s; c.setLineDash([6 / s, 4 / s]);
+  c.beginPath(); F.forEach((q, i) => (i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]))); c.closePath(); c.fill(); c.stroke();
+  c.setLineDash([]);
+  F.forEach((q, i) => {
+    const name = HANDLES[i], on = sel.hover === name; c.fillStyle = on ? blue : '#fff'; c.strokeStyle = blue; c.lineWidth = 1.6 / s;
+    if (name === 'tr') {
+      const R = 9 / s; c.beginPath(); c.arc(q[0], q[1], R, 0, Math.PI * 2); c.fill(); c.stroke();
+      const r = R * 0.55, a1 = Math.PI * 1.25, ex = q[0] + r * Math.cos(a1), ey = q[1] + r * Math.sin(a1);
+      c.strokeStyle = on ? '#fff' : blue; c.beginPath(); c.arc(q[0], q[1], r, -Math.PI * 0.25, a1); c.stroke();
+      c.fillStyle = on ? '#fff' : blue; c.beginPath(); c.moveTo(ex + 3 / s, ey - 1 / s); c.lineTo(ex - 3.2 / s, ey - 1.5 / s); c.lineTo(ex - 0.5 / s, ey + 3.5 / s); c.closePath(); c.fill();
+    } else { const h = 5.5 / s; c.fillRect(q[0] - h, q[1] - h, 2 * h, 2 * h); c.strokeRect(q[0] - h, q[1] - h, 2 * h, 2 * h); }
+  });
+  if (sel.label) { // açı ya da oran
+    const q = F[1], fs = 12 / s; c.font = '600 ' + fs + 'px "Segoe UI", system-ui, sans-serif';
+    const w = c.measureText(sel.label).width + 10 / s, x = q[0] + 14 / s, y = q[1] - 26 / s;
+    c.fillStyle = blue; c.beginPath(); c.roundRect ? c.roundRect(x, y, w, 18 / s, 9 / s) : c.rect(x, y, w, 18 / s); c.fill();
+    c.fillStyle = '#fff'; c.textBaseline = 'middle'; c.fillText(sel.label, x + 5 / s, y + 9 / s);
+  }
+  c.restore();
+}
+function redrawSelSoon() { if (!selRaf) selRaf = requestAnimationFrame(() => { selRaf = 0; if (sel) { sel.pv.drawInk(); drawSel(); } }); }
+function clearSel() { sel = null; cancelAnimationFrame(selRaf); selRaf = 0; viewer.style.cursor = ''; clearOverlayNow(); }
+function finishLasso(c, cancel) {
+  const P = c.lasso;
+  if (cancel || P.length < 4 || c.moved < 8) { clearSel(); return; }
+  const objs = c.pv.objs.filter((o) => objIn(o, P));
+  if (!objs.length) { clearSel(); toast('Bu alanda yazı ya da çizim yok.'); return; }
+  sel = { pv: c.pv, objs, bb: selBox(objs) }; drawSel();
+  if (!state.selHinted) { state.selHinted = true; toast(objs.length + ' öğe seçildi: içinden sürükle taşı · sağ üst köşe döndür · diğer köşeler büyüt/küçült · Delete sil'); }
+}
+function deleteSel() {
+  const pv = sel.pv, items = [];
+  for (let i = pv.objs.length - 1; i >= 0; i--) if (sel.objs.includes(pv.objs[i])) { items.push({ pv, o: pv.objs[i], idx: i }); pv.objs.splice(i, 1); }
+  clearSel(); pv.drawInk(); if (items.length) pushAction({ k: 'erase', items });
+}
 function endStroke(e, cancel) {
   const c = cur; cur = null;
   try { viewer.releasePointerCapture(c.id); } catch (err) {}
   if (c.laser) { laserEnd(c, e, cancel); return; }
+  if (c.lasso) { finishLasso(c, cancel); return; }
+  if (c.xf) {
+    const x = c.xf, a = x.op === 'rotate' ? { k: 'xform', op: 'rotate', pv: c.pv, objs: sel.objs.slice(), cx: x.cx, cy: x.cy, t: x.t } : { k: 'xform', op: 'scale', pv: c.pv, objs: sel.objs.slice(), ax: x.ax, ay: x.ay, s: x.s };
+    const changed = x.op === 'rotate' ? Math.abs(x.t) > 1e-4 : Math.abs(x.s - 1) > 1e-4;
+    if (changed) { if (cancel) applyXform(a, true); else pushAction(a); }
+    sel.view = null; sel.label = ''; sel.bb = selBox(sel.objs);
+    cancelAnimationFrame(selRaf); selRaf = 0; c.pv.drawInk(); drawSel(); return;
+  }
+  if (c.drag) {
+    if (c.dx || c.dy) {
+      if (cancel) { for (const o of sel.objs) translateObj(o, -c.dx, -c.dy); sel.bb = selBox(sel.objs); c.pv.drawInk(); }
+      else pushAction({ k: 'move', pv: c.pv, objs: sel.objs.slice(), dx: c.dx, dy: c.dy });
+    }
+    cancelAnimationFrame(selRaf); selRaf = 0; c.pv.drawInk(); drawSel(); return;
+  }
   // Bağlantı üstünde kısa dokunuş çizim değil, tıklamadır: nokta silinir, bağlantıya gidilir.
   if (!cancel && c.link && c.moved < 6 && e.timeStamp - c.t0 < 450 && !c.erased.length) {
     clearOverlayNow(); showRing(e, false); followLink(c.link._link, c.link); return;
@@ -715,7 +890,7 @@ function setScale(ns, ax, ay) {
   ns = clamp(ns, MIN_SCALE, MAX_SCALE); if (Math.abs(ns - state.scale) < 1e-4) return;
   const vr = viewer.getBoundingClientRect(), ox = ax - vr.left, oy = ay - vr.top;
   const fx = (viewer.scrollLeft + ox) / viewer.scrollWidth, fy = (viewer.scrollTop + oy) / viewer.scrollHeight;
-  state.scale = ns; state.fit = false; state.pages.forEach((p) => p.layout()); computeTops(); laserClear();
+  state.scale = ns; state.fit = false; state.pages.forEach((p) => p.layout()); computeTops(); laserClear(); if (sel) clearSel();
   viewer.scrollLeft = fx * viewer.scrollWidth - ox; viewer.scrollTop = fy * viewer.scrollHeight - oy;
   $('#zoomLbl').textContent = Math.round(ns * 100) + '%';
   clearTimeout(refreshTimer); refreshTimer = setTimeout(() => state.pages.forEach((p) => p.refresh()), 160);
@@ -1117,6 +1292,7 @@ function syncOpts() {
   $('#press').value = state.press; $('#pressOut').textContent = String(state.press);
   document.querySelectorAll('#optLaser button').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.v === o.laserHold)));
   document.querySelectorAll('#optTheme button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === o.theme)));
+  document.querySelectorAll('#optBarrel button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === o.barrel)));
 }
 function setOpt(k, v) { state.opts[k] = v; applyOpts(); syncOpts(); persistView(); }
 $('#touchDraw').addEventListener('change', (e) => { state.touchDraw = e.target.checked; persistView(); });
@@ -1126,6 +1302,7 @@ $('#optWheel').addEventListener('change', (e) => setOpt('wheelNav', e.target.che
 $('#optLinks').addEventListener('change', (e) => setOpt('links', e.target.checked));
 document.querySelectorAll('#optLaser button').forEach((b) => b.addEventListener('click', () => setOpt('laserHold', +b.dataset.v)));
 document.querySelectorAll('#optTheme button').forEach((b) => b.addEventListener('click', () => setOpt('theme', b.dataset.v)));
+document.querySelectorAll('#optBarrel button').forEach((b) => b.addEventListener('click', () => setOpt('barrel', b.dataset.v)));
 $('#btnDefApp').addEventListener('click', async () => {
   let r = null; try { r = await window.desktop.openDefaultApps(); } catch (e) { console.error(e); }
   if (r && r.portable) toast('Bunun için kurulum sürümünü kullan (PDF-Kalemi-Kurulum).');
@@ -1153,7 +1330,7 @@ function writeState() {
 }
 function inkJson() {
   const r = (v) => Math.round(v * 100) / 100;
-  return JSON.stringify(state.pages.map((p) => p.objs.map((o) => o.pts ? { t: o.t, k: o.k, c: o.c, w: o.w, pts: o.pts.map((q) => [r(q[0]), r(q[1]), r(q[2])]) } : { t: o.t, c: o.c, w: o.w, a: o.a.map(r), b: o.b.map(r) })));
+  return JSON.stringify(state.pages.map((p) => p.objs.map((o) => o.pts ? { t: o.t, k: o.k, c: o.c, w: o.w, pts: o.pts.map((q) => [r(q[0]), r(q[1]), r(q[2])]) } : { t: o.t, c: o.c, w: o.w, a: o.a.map(r), b: o.b.map(r), rot: o.rot ? +o.rot.toFixed(4) : undefined })));
 }
 function scheduleInkSave() { if (!ready) return; clearTimeout(inkTimer); inkTimer = setTimeout(() => window.desktop.saveInk(inkKey(), inkJson()), 700); }
 function restoreInk(json) {
@@ -1284,6 +1461,7 @@ async function buildPdf() {
         else if (o.t === 'arrow') polys = [[o.a, o.b], arrowHead(o)];
         else if (o.t === 'rect') polys = [[o.a, [o.b[0], o.a[1]], o.b, [o.a[0], o.b[1]], o.a]];
         else polys = [ellipsePoly(o, 64)];
+        if (o.rot) { const [cx, cy] = midOf(o); polys = polys.map((P) => P.map((q) => rotPt(q, cx, cy, o.rot))); }
         for (const poly of polys) page.drawSvgPath(svgOf(toPdfPts(pv, poly), false), { x: 0, y: 0, borderColor: color, borderWidth: o.w, borderLineCap: LineCapStyle.Round });
       }
     }
@@ -1353,6 +1531,8 @@ window.addEventListener('keydown', (e) => {
     if (e.key === 'End') { e.preventDefault(); goPage(state.pages.length - 1); return; }
     if (e.key === 'ArrowDown') { e.preventDefault(); viewer.scrollTop += 90; return; }
     if (e.key === 'ArrowUp') { e.preventDefault(); viewer.scrollTop -= 90; return; }
+    if (sel && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); deleteSel(); return; }
+    if (sel && e.key === 'Escape') { clearSel(); return; }
     if (e.key === 'Escape') { closeCurtain(); closeSides(); return; }
     if (e.key === 'Backspace') { e.preventDefault(); goBack(); return; }
     if (k === 't') { e.preventDefault(); toggleCurtain(); return; }
@@ -1408,5 +1588,5 @@ window.desktop.onOpenFile((f) => { if (f) loadPdf(f.bytes, f.name, false, f.path
   else await loadPdf(await makeSample(), 'kareli-sayfa.pdf', true);
   viewer.focus();
 })();
-window.__app = { state, toast, loadPdf, buildPdf, undo, redo, setTool, setNib, fitWidth, currentIndex, goBack, goPage, snapTop };
+window.__app = { state, toast, getSel: () => sel, loadPdf, buildPdf, undo, redo, setTool, setNib, fitWidth, currentIndex, goBack, goPage, snapTop };
 })();

@@ -1,9 +1,14 @@
 {
   "name": "pdf-kalemi",
   "version": "1.0.0",
-  "description": "PDF üzerine çizim yapan sade masaüstü uygulaması",
+  "description": "Kalemle PDF üzerine yazma, sunum ve yapay zeka asistanı (masaüstü + web)",
   "main": "main.js",
-  "author": "PDF Kalemi",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --arm64",
+    "dist:x64": "electron-builder --win --x64"
+  },
+  "author": "Ufuk ASIL",
   "license": "MIT",
   "devDependencies": {
     "electron": "44.7.0",
