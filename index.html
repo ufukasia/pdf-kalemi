@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'self' blob: data:; manifest-src 'self'">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#1c2027">
+<meta name="mobile-web-app-capable" content="yes">
+<title>PDF Kalemi</title>
+<style>
+/* Layout: üstte tek satır araç çubuğu, altında kaydırılabilir sayfa alanı. Sayfalar her zaman beyaz kağıt, zemin temayı izler. */
+:root {
+  --ground: #e6e9ee;
+  --bar: #ffffff;
+  --fg: #1b2028;
+  --muted: #5b6573;
+  --line: #d3d8e0;
+  --hover: #eef1f6;
+  --accent: #1f5eff;
+  --accent-fg: #ffffff;
+  --accent-soft: #e3ebff;
+  --paper-shadow: 0 1px 2px rgba(20, 30, 50, .18), 0 6px 22px rgba(20, 30, 50, .14);
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #12151a; --bar: #1c2027; --fg: #e8ebf0; --muted: #9aa4b2; --line: #2d343e;
+    --hover: #272d36; --accent: #7aa2ff; --accent-fg: #0a1226; --accent-soft: #23304f;
+    --paper-shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 26px rgba(0, 0, 0, .55);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #12151a; --bar: #1c2027; --fg: #e8ebf0; --muted: #9aa4b2; --line: #2d343e;
+  --hover: #272d36; --accent: #7aa2ff; --accent-fg: #0a1226; --accent-soft: #23304f;
+  --paper-shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 26px rgba(0, 0, 0, .55);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--ground); color: var(--fg); font: 14px/1.3 var(--font);
+  overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+#app { position: relative; height: 100%; }
+
+/* Toolbar */
+#bar {
+  display: flex; flex-wrap: nowrap; align-items: center; gap: 6px 14px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--bar); border-bottom: 1px solid var(--line); flex: none;
+}
+#bar::-webkit-scrollbar { display: none; }
+.grp { display: flex; align-items: center; gap: 4px; flex: none; }
+.grp.end { margin-left: auto; }
+.btn, .tool, .sw, .iconbtn {
+  font: inherit; color: var(--fg); background: transparent; border: 1px solid transparent; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; touch-action: manipulation;
+}
+.tool, .iconbtn { width: 40px; height: 40px; border-radius: 10px; }
+.tool svg, .iconbtn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tool:hover, .iconbtn:hover:not(:disabled) { background: var(--hover); }
+.tool[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.iconbtn:disabled { opacity: .35; cursor: default; }
+.iconbtn[aria-pressed="true"], .iconbtn[aria-expanded="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.btn { height: 40px; padding: 0 16px; border-radius: 10px; border-color: var(--line); font-weight: 600; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .5; cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.sw { width: 26px; height: 26px; border-radius: 50%; padding: 0; position: relative; }
+.sw span { width: 19px; height: 19px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .25); display: block; }
+.sw[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--bar), 0 0 0 4px var(--accent); }
+#colors.off { opacity: .3; pointer-events: none; }
+
+.size { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+.size > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.size input[type="range"] { width: 96px; accent-color: var(--accent); height: 28px; }
+.size output { min-width: 2.6ch; text-align: right; color: var(--fg); font-variant-numeric: tabular-nums; font-weight: 600; }
+.grp[hidden] { display: none; }
+.seg { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 12px; }
+.nib { font: inherit; width: 36px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; }
+.nib svg { width: 22px; height: 22px; }
+.nib:hover { background: var(--hover); color: var(--fg); }
+.nib[aria-checked="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.press { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 12px; margin-left: 6px; }
+.press svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.press input[type="range"] { width: 72px; accent-color: var(--accent); height: 28px; }
+.press output { min-width: 2.6ch; text-align: right; color: var(--fg); font-variant-numeric: tabular-nums; font-weight: 600; }
+.zoomlbl { min-width: 4.2ch; text-align: center; font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; }
+.toggle { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; cursor: pointer; height: 40px; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+/* Viewer */
+#viewer {
+  position: absolute; inset: 0; overflow: auto; touch-action: none; overscroll-behavior: contain; scrollbar-width: none; outline: none;
+  -webkit-overflow-scrolling: touch;
+}
+#pages { display: flex; flex-direction: column; align-items: center; gap: 28px; padding: 24px; width: max-content; min-width: 100%; }
+.page { position: relative; flex: none; background: #fff; box-shadow: var(--paper-shadow); }
+.page canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.page canvas.ov { pointer-events: none; }
+#viewer.tool-eraser, #viewer.tool-pen, #viewer.tool-hl, #viewer.tool-line, #viewer.tool-arrow, #viewer.tool-rect, #viewer.tool-ellipse { cursor: crosshair; }
+#viewer.tool-eraser, #viewer.tool-laser { cursor: none; }
+#laser { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 4; }
+#laserDot { position: fixed; left: 0; top: 0; border-radius: 50%; pointer-events: none; z-index: 5; display: none; }
+.tool.laser[aria-pressed="true"] { color: #ff1f4b; border-color: #ff1f4b; background: rgba(255, 31, 75, .12); box-shadow: 0 0 10px rgba(255, 31, 75, .45); }
+.tool.laser[aria-pressed="true"] svg { filter: drop-shadow(0 0 3px #ff1f4b); }
+
+#status {
+  position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 999px; background: var(--bar);
+  border: 1px solid var(--line); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .12);
+}
+#status b { color: var(--fg); font-weight: 600; }
+#ring { position: fixed; left: 0; top: 0; border: 1.5px solid #e5484d; border-radius: 50%; pointer-events: none; display: none; background: rgba(229, 72, 77, .08); z-index: 5; }
+#toast {
+  position: fixed; left: 50%; top: calc(76px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 20;
+  max-width: min(92vw, 520px); padding: 10px 16px; border-radius: 10px; background: var(--fg); color: var(--bar);
+  font-weight: 600; box-shadow: 0 6px 24px rgba(0, 0, 0, .3); opacity: 0; pointer-events: none; transition: opacity .18s;
+}
+#toast.show { opacity: 1; }
+#drop {
+  position: fixed; inset: 0; z-index: 15; display: none; align-items: center; justify-content: center; background: color-mix(in srgb, var(--ground) 82%, transparent);
+  font-size: 22px; font-weight: 600; border: 3px dashed var(--accent); margin: 10px; border-radius: 16px; color: var(--accent);
+}
+#drop.on { display: flex; }
+
+@media (max-width: 1599px) {
+  .btn .lbl { display: none; } .btn { padding: 0; width: 36px; }
+  #bar { gap: 6px 8px; } .grp { gap: 2px; }
+  .tool, .iconbtn, .btn { width: 36px; height: 36px; }
+  .nib { width: 32px; height: 32px; }
+  .sw { width: 24px; height: 24px; } .sw span { width: 17px; height: 17px; }
+  .size input[type="range"] { width: 72px; } .press input[type="range"] { width: 56px; }
+}
+@media (max-width: 1250px) { #btnZoomIn, #btnZoomOut { display: none; } .size input[type="range"] { width: 60px; } }
+/* Telefon: araç çubuğu tek satıra sığmaz; yana kayan gizli şerit yerine satırlara sarılır */
+@media (max-width: 700px) { #bar { flex-wrap: wrap; overflow-x: visible; row-gap: 6px; } .grp.end { margin-left: 0; } }
+@media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+
+html, body { overflow: hidden; }
+#viewer::-webkit-scrollbar { display: none; }
+/* Perde: araç çubuğu ekranın üstünde gizli durur, tutamaktan çekilince iner */
+#curtain { position: fixed; left: 0; right: 0; top: 0; z-index: 12; transform: translateY(-100%); transition: transform .24s cubic-bezier(.2, .8, .2, 1); will-change: transform; }
+#curtain.open { transform: translateY(0); }
+#curtain.drag { transition: none; }
+#bar { border-bottom: 0; }
+#curtain.open #bar, #curtain.drag #bar { box-shadow: 0 6px 24px rgba(0, 0, 0, .18); }
+#grip { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); width: 132px; height: 30px; padding: 0; border: 0; background: transparent; cursor: grab; touch-action: none; display: flex; justify-content: center; align-items: flex-start; }
+#grip::after { content: ""; width: 54px; height: 5px; margin-top: 6px; border-radius: 3px; background: var(--muted); opacity: .4; transition: opacity .2s, width .2s; }
+#grip:hover::after, #curtain.open #grip::after { opacity: .75; width: 64px; }
+/* PDF bağlantıları: görünmez alan, kalem veya fare üstüne gelince belirir */
+.lnk { position: absolute; z-index: 3; cursor: pointer; border-radius: 3px; }
+.lnk:hover { background: rgba(31, 94, 255, .13); box-shadow: inset 0 0 0 1.5px rgba(31, 94, 255, .55); }
+.lnk.flash { animation: lnkflash 1.2s ease-out; }
+@keyframes lnkflash { from { background: rgba(31, 94, 255, .28); } to { background: transparent; } }
+#toc {
+  position: absolute; top: calc(100% + 6px); left: max(16px, env(safe-area-inset-left, 0px)); z-index: 2; width: min(420px, calc(100vw - 32px));
+  max-height: min(70vh, 640px); overflow: auto; padding: 6px; background: var(--bar); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 12px; box-shadow: 0 10px 32px rgba(0, 0, 0, .22);
+}
+#toc button { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: transparent; border: 0; border-radius: 8px; padding: 9px 10px; cursor: pointer; line-height: 1.3; }
+#toc button:hover { background: var(--hover); }
+#toc button.d0 { font-weight: 600; }
+#toc button.d1 { padding-left: 26px; } #toc button.d2 { padding-left: 42px; color: var(--muted); } #toc button.d3 { padding-left: 58px; color: var(--muted); }
+#gotoBox { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); z-index: 25; display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: var(--bar); color: var(--fg); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 40px rgba(0, 0, 0, .3); font-weight: 600; }
+#gotoBox[hidden] { display: none; }
+#gotoBox input { width: 6ch; font: inherit; font-size: 18px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--ground); color: var(--fg); text-align: center; }
+#gotoBox span { color: var(--muted); font-weight: 400; }
+/* Sabit menü: araç çubuğu hep açık, sayfa alanı ve yan çekmeceler onun altında */
+body.pinned #viewer { top: var(--barH, 56px); }
+body.pinned .side { top: var(--barH, 56px); }
+body.pinned #grip { display: none; }
+body.pinned #curtain.open #bar { box-shadow: none; border-bottom: 1px solid var(--line); }
+
+/* Alttan çekilen ayarlar paneli */
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; max-height: 80vh; display: flex; flex-direction: column; background: var(--bar); color: var(--fg); border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; transform: translateY(100%); transition: transform .24s cubic-bezier(.2, .8, .2, 1); will-change: transform; }
+.sheet.open { transform: translateY(0); box-shadow: 0 -8px 36px rgba(0, 0, 0, .28); }
+.sheet.drag { transition: none; }
+.sheet .sgrip { left: 50%; top: auto; bottom: 100%; width: 132px; height: 30px; margin: 0 0 0 -66px; align-items: flex-end; }
+.sheet .sgrip::after { width: 54px; height: 5px; margin-bottom: 6px; }
+.sheet .sgrip:hover::after, .sheet.open .sgrip::after { width: 64px; height: 5px; }
+.sheet-in { overflow: auto; padding: 4px max(20px, env(safe-area-inset-left, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)); overscroll-behavior: contain; touch-action: pan-y; }
+.sheet-h { display: flex; align-items: baseline; gap: 12px; padding: 14px 4px 6px; font-size: 16px; }
+.sheet-h span { color: var(--muted); font-size: 13px; }
+.sheet-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 4px 28px; }
+.sheet h3 { margin: 12px 4px 4px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.opt { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 4px; border-top: 1px solid var(--line); cursor: pointer; }
+section .opt:first-of-type { border-top: 0; }
+.opt > span:first-child { min-width: 0; }
+.opt b { display: block; font-weight: 600; }
+.opt small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; line-height: 1.35; }
+.switch { appearance: none; -webkit-appearance: none; flex: none; width: 46px; height: 28px; border-radius: 14px; background: var(--line); position: relative; cursor: pointer; transition: background .15s; margin: 0; }
+.switch::before { content: ""; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .15s; }
+.switch:checked { background: var(--accent); }
+.switch:checked::before { transform: translateX(18px); }
+.rng { display: flex; align-items: center; gap: 8px; flex: none; }
+.rng input { width: 140px; accent-color: var(--accent); }
+.rng output { min-width: 2.6ch; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.segbtn { display: flex; flex: none; padding: 2px; gap: 2px; border: 1px solid var(--line); border-radius: 10px; }
+.segbtn button { font: inherit; font-size: 13px; color: var(--muted); background: transparent; border: 0; border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+.segbtn button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+body.nolinks .lnk { display: none; }
+/* Web sürümü: Windows'a özgü ayar gizlenir; telefonda dokunma alanları ve kenar boşlukları */
+.web #rowDefApp { display: none; }
+.fold-perm { font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); background: transparent; border: 1px solid var(--accent); border-radius: 8px; padding: 7px 12px; margin: 6px 0 8px 6px; cursor: pointer; }
+html, body { overscroll-behavior: none; }
+
+/* Yan çekmeceler: solda son açılanlar, sağda sayfa şeridi */
+.side { position: fixed; top: 0; bottom: 0; z-index: 11; display: flex; flex-direction: column; background: var(--bar); color: var(--fg); transition: transform .24s cubic-bezier(.2, .8, .2, 1); will-change: transform; }
+.side.left { left: 0; width: min(360px, 86vw); transform: translateX(-100%); border-right: 1px solid var(--line); }
+.side.right { right: 0; width: min(236px, 60vw); transform: translateX(100%); border-left: 1px solid var(--line); }
+.side.open { transform: translateX(0); box-shadow: 0 0 36px rgba(0, 0, 0, .28); }
+.side.drag { transition: none; }
+.side-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 16px 10px; font-size: 15px; flex: none; }
+.side-h span { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.side-h .btn { width: auto; height: 34px; padding: 0 12px; }
+.side-list { flex: 1; overflow: auto; padding: 2px 10px 18px; scrollbar-width: thin; overscroll-behavior: contain; touch-action: pan-y; }
+.side-empty { color: var(--muted); padding: 12px 6px; }
+.sgrip { position: absolute; top: 50%; width: 24px; height: 120px; margin-top: -60px; padding: 0; border: 0; background: transparent; cursor: grab; touch-action: none; display: flex; align-items: center; justify-content: center; }
+.side.left .sgrip { left: 100%; } .side.right .sgrip { right: 100%; }
+.sgrip::after { content: ""; width: 5px; height: 54px; border-radius: 3px; background: var(--muted); opacity: .4; transition: opacity .2s, height .2s; }
+.sgrip:hover::after, .side.open .sgrip::after { opacity: .75; height: 64px; }
+.side-search { padding: 0 16px 8px; flex: none; }
+.side-search input { width: 100%; font: inherit; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--ground); color: var(--fg); outline: none; }
+.side-search input:focus { border-color: var(--accent); }
+.side-sec { margin: 14px 6px 6px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.side-sec-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.side-sec-row .add { font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; margin-top: 8px; }
+.side-sec-row .add:hover { background: var(--hover); }
+.fold { margin-bottom: 4px; }
+.fold-h { display: flex; align-items: center; gap: 8px; padding: 6px 4px 6px 8px; border-radius: 10px; cursor: pointer; outline: none; }
+.fold-h:hover, .fold-h:focus-visible { background: var(--hover); }
+.fold-h::before { content: ""; flex: none; width: 0; height: 0; border-left: 6px solid var(--muted); border-top: 4.5px solid transparent; border-bottom: 4.5px solid transparent; transform: rotate(90deg); transition: transform .15s; }
+.fold.shut .fold-h::before { transform: none; }
+.fold-h b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.fold-h small { flex: none; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.fold-x { flex: none; width: 30px; height: 30px; border-radius: 8px; border: 0; background: transparent; color: var(--muted); font-size: 19px; line-height: 1; cursor: pointer; }
+.fold-x:hover { background: var(--line); color: var(--fg); }
+.fold-e { display: inline-flex; align-items: center; justify-content: center; }
+.fold-e svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.fold-in { flex: 1; min-width: 0; font: inherit; font-weight: 600; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--accent); background: var(--ground); color: var(--fg); outline: none; }
+.fold-b { margin-left: 13px; padding-left: 6px; border-left: 1px solid var(--line); }
+.fold.shut .fold-b { display: none; }
+#recentList.filtering .fold.shut .fold-b { display: block; }
+.rec[hidden] { display: none; }
+.rec { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: transparent; border: 1px solid transparent; border-radius: 10px; padding: 10px 12px; margin-bottom: 2px; cursor: pointer; }
+.rec:hover { background: var(--hover); }
+.rec.cur { background: var(--accent-soft); border-color: var(--accent); }
+.rec b, .rec small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rec b { font-weight: 600; }
+.rec small { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.th { display: block; width: 100%; padding: 6px; margin-bottom: 4px; background: transparent; border: 2px solid transparent; border-radius: 10px; cursor: pointer; color: var(--muted); font: 12px/1.2 var(--font); }
+.th:hover { background: var(--hover); }
+.th.cur { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.th .pg { position: relative; width: 100%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .28); }
+.th canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.th > span { display: block; text-align: center; margin-top: 5px; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .side, #curtain { transition: none; } }
+#status { gap: 6px; padding: 5px 13px; font-size: 14px; opacity: 0; transition: opacity .35s; }
+#status.show { opacity: 1; }
+</style></head><body>
+<div id="app">
+  <div id="curtain"><header id="bar" role="toolbar" aria-label="Araç çubuğu">
+    <div class="grp">
+      <button class="btn" id="btnOpen" type="button" title="PDF aç (Ctrl+O)" aria-label="PDF aç">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a1 1 0 0 1 1-1h4l2 2h8a1 1 0 0 1 1 1v1"/><path d="M3.5 10h17l-1.6 8.2a1 1 0 0 1-1 .8H6.1a1 1 0 0 1-1-.8z"/></svg>
+        <span class="lbl">PDF aç</span>
+      </button>
+      <input type="file" id="file" accept="application/pdf,.pdf" hidden>
+      <button class="iconbtn" id="btnToc" type="button" title="İçindekiler (bölümler)" aria-label="İçindekiler" aria-expanded="false" disabled><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg></button>
+    </div>
+
+    <div class="grp" role="group" aria-label="Çizim aracı" id="tools">
+      <button class="tool" type="button" data-tool="pen" aria-pressed="true" title="Kalem (P)"><svg viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 3L8 19l-4 1z"/><path d="M14.5 6.5l3 3"/></svg></button>
+      <button class="tool" type="button" data-tool="hl" aria-pressed="false" title="Fosforlu kalem (H)"><svg viewBox="0 0 24 24"><path d="M9 14l7-7 3 3-7 7H9v-3z"/><path d="M15 8l2-2 3 3-2 2"/><path d="M4 20h8"/></svg></button>
+      <button class="tool" type="button" data-tool="line" aria-pressed="false" title="Çizgi (L)"><svg viewBox="0 0 24 24"><path d="M5 19L19 5"/></svg></button>
+      <button class="tool" type="button" data-tool="arrow" aria-pressed="false" title="Ok (A)"><svg viewBox="0 0 24 24"><path d="M5 19L19 5"/><path d="M10 5h9v9"/></svg></button>
+      <button class="tool" type="button" data-tool="rect" aria-pressed="false" title="Dikdörtgen (R)"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1"/></svg></button>
+      <button class="tool" type="button" data-tool="ellipse" aria-pressed="false" title="Elips (O)"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="6"/></svg></button>
+      <button class="tool laser" type="button" data-tool="laser" aria-pressed="false" title="Lazer kalem (Z): neon iz, kalem kalkınca kendiliğinden söner"><svg viewBox="0 0 24 24"><path d="M4 20l9-9"/><circle cx="16.5" cy="7.5" r="2.6"/><path d="M16.5 1.8v1.4M22.2 7.5h-1.4M20.5 3.5l-1 1M12.5 3.5l1 1M20.5 11.5l-1-1"/></svg></button>
+      <button class="tool" type="button" data-tool="eraser" aria-pressed="false" title="Silgi (E). Kalemin silgi ucu da siler"><svg viewBox="0 0 24 24"><path d="M8 19h11"/><path d="M5.5 13.5l7-7a2 2 0 0 1 2.8 0l3 3a2 2 0 0 1 0 2.8L12 19H8l-2.5-2.5a2 2 0 0 1 0-3z"/></svg></button>
+    </div>
+
+    <div class="grp" id="nibs">
+      <div class="seg" role="radiogroup" aria-label="Kalem ucu">
+        <button class="nib" type="button" role="radio" data-nib="ball" title="Tükenmez kalem (1)" aria-label="Tükenmez"><svg viewBox="0 0 24 24"><path d="M3 15c2.5-5 4.5-7 6-4s2.5 5 5 1 4-6 7-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+        <button class="nib" type="button" role="radio" data-nib="fountain" title="Dolma kalem: basınca göre kalınlaşır, uçları incelir (2)" aria-label="Dolma kalem"><svg viewBox="0 0 24 24"><path d="M2.5 16.5C5 12 7 9.5 9 10.5s2 5 4.5 4.5S18 9 21.5 6.5C19 9.5 17 15.5 13.5 16 10 16.5 10.5 12 9 11.5S5 13.5 2.5 16.5z" fill="currentColor"/></svg></button>
+        <button class="nib" type="button" role="radio" data-nib="brush" title="Fırça kalem: güçlü basınç farkı, uzun incelme (3)" aria-label="Fırça kalem"><svg viewBox="0 0 24 24"><path d="M3 19c3-1 5-6 8-9.5S18 4 21 4c-3 1.5-5 5.5-8 9s-6 6-10 6z" fill="currentColor"/></svg></button>
+        <button class="nib" type="button" role="radio" data-nib="callig" title="Kaligrafi: kesik uç, yöne göre kalın ve ince (4)" aria-label="Kaligrafi"><svg viewBox="0 0 24 24"><path d="M4 19l4-13h3.4l-4 13zM12.5 19l4-13H20l-4 13z" fill="currentColor"/><path d="M9.6 19l7.6-13" fill="none" stroke="currentColor" stroke-width="1"/></svg></button>
+      </div>
+    </div>
+
+    <div class="grp" id="colors" role="radiogroup" aria-label="Renk"></div>
+
+    <div class="grp">
+      <label class="size" for="size"><span id="sizeLbl">Kalınlık</span>
+        <input type="range" id="size" min="0.5" max="12" step="0.5" value="2" title="Kalınlık"><output id="sizeOut" for="size">2</output>
+      </label>
+    </div>
+
+    <div class="grp">
+      <button class="iconbtn" id="btnUndo" type="button" title="Geri al (Ctrl+Z)" disabled><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+      <button class="iconbtn" id="btnRedo" type="button" title="İleri al (Ctrl+Y)" disabled><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+    </div>
+
+    <div class="grp">
+      <button class="iconbtn" id="btnZoomOut" type="button" title="Uzaklaştır"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+      <span class="zoomlbl" id="zoomLbl">100%</span>
+      <button class="iconbtn" id="btnZoomIn" type="button" title="Yakınlaştır"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg></button>
+      <button class="iconbtn" id="btnFit" type="button" title="Genişliğe sığdır"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    </div>
+
+
+    <div class="grp end">
+      <button class="btn primary" id="btnSave" type="button" title="Çizimleri PDF'e işleyip kaydet (Ctrl+S)" aria-label="PDF'i kaydet">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M7.5 11L12 15.5 16.5 11"/><path d="M5 19h14"/></svg>
+        <span class="lbl">PDF'i kaydet</span>
+      </button>
+      <button class="iconbtn" id="btnPin" type="button" aria-pressed="false" title="Menüyü sabitle: hep açık kalsın" aria-label="Menüyü sabitle"><svg viewBox="0 0 24 24"><path d="M9 3.5h6l-1 5.5 3.5 3.5v2h-11v-2L10 9z"/><path d="M12 14.5V21"/></svg></button>
+    </div>
+  </header>
+  <nav id="toc" aria-label="İçindekiler" hidden></nav>
+  <button id="grip" type="button" aria-label="Araçları aç veya kapat" title="Araçlar (T)"></button></div>
+
+  <aside id="recent" class="side left" aria-label="Son açılan PDF'ler">
+    <div class="side-h"><b>Dosyalar</b><button class="btn" id="btnOpen2" type="button" title="PDF aç (Ctrl+O)">PDF aç</button></div>
+    <div class="side-search"><input type="search" id="fileFilter" placeholder="Sunum ara…" aria-label="Sunum ara" autocomplete="off" spellcheck="false"></div>
+    <div class="side-list" id="recentList"></div>
+    <button class="sgrip" id="gripL" type="button" aria-label="Son açılanları aç veya kapat" title="Son açılanlar"></button>
+  </aside>
+  <aside id="strip" class="side right" aria-label="Sayfalar">
+    <div class="side-h"><b>Sayfalar</b><span id="stripCount"></span></div>
+    <div class="side-list" id="thumbs"></div>
+    <button class="sgrip" id="gripR" type="button" aria-label="Sayfa şeridini aç veya kapat" title="Sayfalar"></button>
+  </aside>
+
+  <aside id="settings" class="sheet" aria-label="Ayarlar">
+    <button class="sgrip" id="gripB" type="button" aria-label="Ayarları aç veya kapat" title="Ayarlar"></button>
+    <div class="sheet-in">
+      <div class="sheet-h"><b>Ayarlar</b><span>Ne yapılabilir, ne yapılamaz</span></div>
+      <div class="sheet-grid">
+        <section><h3>Parmak</h3>
+          <label class="opt"><span><b>Parmakla çiz</b><small>Kapalıyken parmak sayfayı kaydırır ve yakınlaştırır, yalnızca kalem çizer.</small></span><input type="checkbox" class="switch" id="touchDraw"></label>
+          <label class="opt"><span><b>Dokunarak sayfa çevir</b><small>Parmakla tek dokunuş sonraki, çift dokunuş önceki slayt.</small></span><input type="checkbox" class="switch" id="optTap"></label>
+          <label class="opt"><span><b>Kaydırarak slayt geç</b><small>Sunumda yukarı veya sola kaydırınca sonraki, aşağı veya sağa kaydırınca önceki slayt. Kapalıyken serbest kaydırma.</small></span><input type="checkbox" class="switch" id="optSwipe"></label>
+        </section>
+        <section><h3>Sunum</h3>
+          <label class="opt"><span><b>Tekerlek ve touchpad slayt slayt</b><small>Fare tekerleği veya touchpad'in bir hamlesi bir slayt ilerletir.</small></span><input type="checkbox" class="switch" id="optWheel"></label>
+          <label class="opt"><span><b>PDF bağlantıları</b><small>Bölüm, içindekiler ve gezinme düğmelerine dokununca o sayfaya git.</small></span><input type="checkbox" class="switch" id="optLinks"></label>
+        </section>
+        <section><h3>Kalem</h3>
+          <label class="opt" for="press"><span><b>Basınç hassasiyeti</b><small>Yükseldikçe hafif dokunuş da kalın yazar.</small></span><span class="rng"><input type="range" id="press" min="0" max="100" step="5" value="50"><output id="pressOut" for="press">50</output></span></label>
+          <div class="opt"><span><b>Lazerin sönme süresi</b><small>Kalem kalktıktan sonra neon izin ekranda kalma süresi.</small></span><div class="segbtn" id="optLaser" role="group" aria-label="Lazerin sönme süresi"><button type="button" data-v="400">Kısa</button><button type="button" data-v="900">Orta</button><button type="button" data-v="2000">Uzun</button></div></div>
+        </section>
+        <section><h3>Sistem</h3>
+          <div class="opt" id="rowDefApp"><span><b>Varsayılan PDF uygulaması</b><small>PDF'lere çift tıklayınca PDF Kalemi ile açılsın. Windows son onayı senden ister: açılan sayfada ".pdf" için PDF Kalemi'yi seç.</small></span><button class="btn" id="btnDefApp" type="button">Ayarla</button></div>
+        </section>
+        <section><h3>Görünüm</h3>
+          <div class="opt"><span><b>Tema</b><small>Kenar alanı ve menülerin rengi. Sayfalar her zaman beyaz kalır.</small></span><div class="segbtn" id="optTheme" role="group" aria-label="Tema"><button type="button" data-v="system">Sistem</button><button type="button" data-v="light">Açık</button><button type="button" data-v="dark">Koyu</button></div></div>
+        </section>
+      </div>
+    </div>
+  </aside>
+
+  <main id="viewer" class="tool-pen" tabindex="-1" aria-label="PDF sayfaları"><div id="pages"></div></main>
+  <canvas id="laser" aria-hidden="true"></canvas>
+  <div id="laserDot" aria-hidden="true"></div>
+</div>
+
+<form id="gotoBox" hidden><label for="gotoNum">Sayfa</label><input id="gotoNum" type="number" min="1" inputmode="numeric"><span id="gotoMax"></span><button class="btn primary" type="submit">Git</button></form>
+<div id="status" aria-live="polite"><b id="stPage">1</b><span>/</span><span id="stCount">1</span></div>
+<div id="ring"></div>
+<div id="toast" role="status"></div>
+<div id="drop">PDF'i buraya bırakın</div>
+<script src="web.js"></script>
+<script src="lib/pdf.min.js"></script>
+<script src="lib/pdf-lib.min.js"></script>
+<script src="app.js"></script>
+</body></html>

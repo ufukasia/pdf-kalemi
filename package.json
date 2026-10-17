@@ -1,0 +1,72 @@
+{
+  "name": "pdf-kalemi",
+  "version": "1.0.0",
+  "description": "PDF üzerine çizim yapan sade masaüstü uygulaması",
+  "main": "main.js",
+  "author": "PDF Kalemi",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "local.pdfkalemi",
+    "productName": "PDF Kalemi",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "app.js",
+      "web.js",
+      "icon.png",
+      "lib/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "requestExecutionLevel": "user",
+      "artifactName": "PDF-Kalemi-${arch}.exe"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PDF Kalemi",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "artifactName": "PDF-Kalemi-Kurulum-${arch}.exe"
+    },
+    "fileAssociations": [
+      {
+        "ext": "pdf",
+        "name": "PDFKalemi.pdf",
+        "description": "PDF belgesi",
+        "role": "Editor"
+      }
+    ]
+  }
+}

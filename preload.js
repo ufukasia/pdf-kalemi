@@ -1,0 +1,20 @@
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
+contextBridge.exposeInMainWorld('desktop', {
+  openPdf: () => ipcRenderer.invoke('open-pdf'),
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  openDefaultApps: () => ipcRenderer.invoke('open-default-apps'),
+  pickFolder: () => ipcRenderer.invoke('pick-folder'),
+  listPdfs: (dir) => ipcRenderer.invoke('list-pdfs', dir),
+  savePdf: (bytes, defaultPath) => ipcRenderer.invoke('save-pdf', bytes, defaultPath),
+  getInitialFile: () => ipcRenderer.invoke('initial-file'),
+  confirmDiscard: () => ipcRenderer.invoke('confirm-discard'),
+  readPdf: (p) => ipcRenderer.invoke('read-pdf', p),
+  loadState: () => ipcRenderer.invoke('load-state'),
+  saveState: (s) => ipcRenderer.invoke('save-state', s),
+  saveStateSync: (s) => ipcRenderer.sendSync('save-state-sync', s),
+  loadInk: (key) => ipcRenderer.invoke('load-ink', key),
+  saveInk: (key, json) => ipcRenderer.invoke('save-ink', key, json),
+  saveInkSync: (key, json) => ipcRenderer.sendSync('save-ink-sync', key, json),
+  onOpenFile: (cb) => ipcRenderer.on('open-file', (_e, f) => cb(f)),
+  pathOf: (file) => { try { return webUtils.getPathForFile(file); } catch (e) { return ''; } }
+});
