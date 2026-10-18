@@ -5,8 +5,10 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win --arm64",
-    "dist:x64": "electron-builder --win --x64"
+    "dist": "node scripts/dist.js win-arm64",
+    "dist:all": "node scripts/dist.js",
+    "dist:win": "node scripts/dist.js win",
+    "dist:android": "node scripts/dist.js android"
   },
   "author": "Ufuk ASIL",
   "license": "MIT",
@@ -35,8 +37,7 @@
       "lib/**",
       "!node_modules/onnxruntime-web/**",
       "!node_modules/onnxruntime-node/bin/napi-v*/linux/**",
-      "!node_modules/onnxruntime-node/bin/napi-v*/darwin/**",
-      "!node_modules/onnxruntime-node/bin/napi-v*/win32/x64/**"
+      "!node_modules/onnxruntime-node/bin/napi-v*/darwin/**"
     ],
     "win": {
       "target": [
