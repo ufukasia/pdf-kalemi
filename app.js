@@ -511,6 +511,8 @@ function endPointer(e, cancel) {
     const t = touches.get(e.pointerId); touches.delete(e.pointerId); prevPinch = null;
     if (cancel || t.multi || touches.size) return;
     const dx = e.clientX - t.x0, dy = e.clientY - t.y0, dt = Math.max(1, e.timeStamp - t.t0), dist = Math.hypot(dx, dy);
+    // Seçim varken parmakla dokunmak yalnızca seçimi bırakır (slayt değişmez, bağlantı açılmaz).
+    if (sel && dist < 10 && dt < 450) { clearSel(); return; }
     if (t.link && dist < 10 && dt < 450) { followLink(t.link._link, t.link); return; }
     if (dist < 10 && dt < 350) { fingerTap(e); return; }
     if (state.paged && state.opts.swipeNav) {
@@ -549,7 +551,8 @@ function startStroke(e, pv) {
     }
     if (insideSel(p)) { cur.tool = 'move'; cur.drag = true; cur.p0 = p; cur.dx = 0; cur.dy = 0; return; }
   }
-  if (sel) clearSel();
+  // Seçimin dışına dokunmak yalnızca seçimi bırakır; iz bırakmaz. Sonraki dokunuş normal yazar.
+  if (sel) { clearSel(); cur = null; return; }
   const meta = TOOLS[tool];
   if (tool === 'eraser') { showRing(e, true); eraseAt(p[0], p[1]); return; }
   const color = state.colors[meta.ck], w = state.sizes[sizeKey(tool)];
@@ -802,6 +805,11 @@ function endStroke(e, cancel) {
     cancelAnimationFrame(selRaf); selRaf = 0; c.pv.drawInk(); drawSel(); return;
   }
   if (c.drag) {
+    // Parmakla seçimin içine kısa dokunuş seçimi bırakır; parmakla sürüklemek taşımaya devam eder.
+    if (!cancel && c.ptype === 'touch' && Math.hypot(e.clientX - c.x0, e.clientY - c.y0) < 10 && e.timeStamp - c.t0 < 450) {
+      if (c.dx || c.dy) for (const o of sel.objs) translateObj(o, -c.dx, -c.dy);
+      cancelAnimationFrame(selRaf); selRaf = 0; clearSel(); c.pv.drawInk(); return;
+    }
     if (c.dx || c.dy) {
       if (cancel) { for (const o of sel.objs) translateObj(o, -c.dx, -c.dy); sel.bb = selBox(sel.objs); c.pv.drawInk(); }
       else pushAction({ k: 'move', pv: c.pv, objs: sel.objs.slice(), dx: c.dx, dy: c.dy });
