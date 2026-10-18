@@ -61,7 +61,7 @@ Kenarlardan çekerek açılırlar:
 | Kenar | İçerik |
 |---|---|
 | ⬇️ Üst | Kalem araç çubuğu (tek satır). 📌 ile sabitlenebilir. |
-| ➡️ Sol | Son açılanlar ve **Klasörlerim**. Klasörlere istediğiniz adı verebilirsiniz (ör. *Mat1*). OneDrive klasörleri de eklenebilir. |
+| ➡️ Sol | İki sekme: **Klasörlerim** (varsayılan) ve **Son açılanlar**. Klasörlere istediğiniz adı verebilirsiniz (ör. *Mat1*). OneDrive klasörleri de eklenebilir. |
 | ⬅️ Sağ | Tüm sunumu küçük resimlerle gösteren film şeridi |
 | ⬆️ Alt | **Ayarlar:** parmak, sunum, kalem, yapay zekâ, ses, sistem, görünüm |
 

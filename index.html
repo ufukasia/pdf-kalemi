@@ -313,6 +313,16 @@ html, body { overscroll-behavior: none; }
 .side.left .sgrip { left: 100%; } .side.right .sgrip { right: 100%; }
 .sgrip::after { content: ""; width: 5px; height: 54px; border-radius: 3px; background: var(--muted); opacity: .4; transition: opacity .2s, height .2s; }
 .sgrip:hover::after, .side.open .sgrip::after { opacity: .75; height: 64px; }
+.side-tabs { display: flex; gap: 2px; margin: 0 16px 10px; padding: 3px; flex: none; border: 1px solid var(--line); border-radius: 12px; background: var(--ground); }
+.side-tabs button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; font: inherit; font-size: 14px; color: var(--muted); background: transparent; border: 0; border-radius: 9px; cursor: pointer; touch-action: manipulation; }
+.side-tabs button:hover { color: var(--fg); }
+.side-tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.side-tabs span { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 20px; padding: 1px 6px; border-radius: 10px; background: var(--line); color: var(--fg); }
+.side-tabs span:empty { display: none; }
+.side-tabs button[aria-selected="true"] span { background: var(--accent); color: #fff; }
+.side-tab-top { display: flex; justify-content: flex-end; margin: 0 6px 6px; }
+.side-tab-top .add { font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+.side-tab-top .add:hover { background: var(--hover); }
 .side-search { padding: 0 16px 8px; flex: none; }
 .side-search input { width: 100%; font: inherit; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--ground); color: var(--fg); outline: none; }
 .side-search input:focus { border-color: var(--accent); }
@@ -415,11 +425,15 @@ html, body { overscroll-behavior: none; }
   <nav id="toc" aria-label="İçindekiler" hidden></nav>
   <button id="grip" type="button" aria-label="Araçları aç veya kapat" title="Araçlar (T)"></button></div>
 
-  <aside id="recent" class="side left" aria-label="Son açılan PDF'ler">
+  <aside id="recent" class="side left" aria-label="Klasörlerim ve son açılanlar">
     <div class="side-h"><b>Dosyalar</b><button class="btn" id="btnOpen2" type="button" title="PDF aç (Ctrl+O)">PDF aç</button></div>
+    <div class="side-tabs" role="tablist" aria-label="Dosya listesi">
+      <button type="button" role="tab" id="tabFolders" data-tab="folders" aria-controls="recentList">Klasörlerim<span></span></button>
+      <button type="button" role="tab" id="tabRecent" data-tab="recent" aria-controls="recentList">Son açılanlar<span></span></button>
+    </div>
     <div class="side-search"><input type="search" id="fileFilter" placeholder="Sunum ara…" aria-label="Sunum ara" autocomplete="off" spellcheck="false"></div>
     <div class="side-list" id="recentList"></div>
-    <button class="sgrip" id="gripL" type="button" aria-label="Son açılanları aç veya kapat" title="Son açılanlar"></button>
+    <button class="sgrip" id="gripL" type="button" aria-label="Klasörlerim ve son açılanları aç veya kapat" title="Klasörlerim ve son açılanlar"></button>
   </aside>
   <aside id="strip" class="side right" aria-label="Sayfalar">
     <div class="side-h"><b>Sayfalar</b><span id="stripCount"></span></div>

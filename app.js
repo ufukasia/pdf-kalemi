@@ -1102,7 +1102,7 @@ function ago(t) {
   if (a < 86400 * 30) return rtf.format(Math.round(s / 86400), 'day');
   return new Date(t).toLocaleDateString('tr');
 }
-// Sol menü: üstte son açılanlar, altta kullanıcının eklediği klasörler ve içlerindeki PDF'ler.
+// Sol menü: kullanıcının eklediği klasörler ve içlerindeki PDF'ler, ayrı sekmede son açılanlar.
 const folderCache = {};
 // Dosyanın nerede olduğunu kısa ve okunur gösterir (web'deki iç yolları da).
 function placeOf(p) {
@@ -1122,24 +1122,39 @@ function recItem(p, title, sub) {
   b.addEventListener('click', () => openRecent(p));
   return b;
 }
+// Sol menü iki sekmeli: Klasörlerim (ilk ve varsayılan) ve Son açılanlar. Seçili sekme oturum boyunca korunur.
+let sideTab = 'folders';
+function setSideTab(t) { if (t === sideTab) return; sideTab = t; buildRecent(); $('#recentList').scrollTop = 0; }
 function buildRecent() {
   writeState();
   const list = $('#recentList'); list.textContent = '';
-  const sec = (txt) => { const e = document.createElement('h4'); e.className = 'side-sec'; e.textContent = txt; return e; };
-  list.appendChild(sec('Son açılanlar'));
   const items = Object.entries(store.positions).sort((a, b) => (b[1].at || 0) - (a[1].at || 0)).slice(0, 8);
-  if (!items.length) list.appendChild(sideEmpty('Henüz açılmış PDF yok.'));
-  for (const [p] of items) {
-    const name = p.split(/[\\/]/).pop();
-    list.appendChild(recItem(p, name.replace(/\.pdf$/i, ''), placeOf(p)));
+  for (const b of document.querySelectorAll('.side-tabs [role="tab"]')) {
+    const on = b.dataset.tab === sideTab; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1;
+    b.querySelector('span').textContent = b.dataset.tab === 'folders' ? (store.folders.length || '') : (items.length || '');
   }
-  const row = document.createElement('div'); row.className = 'side-sec-row';
-  const add = document.createElement('button'); add.type = 'button'; add.className = 'add'; add.textContent = '+ Klasör ekle'; add.addEventListener('click', addFolder);
-  row.append(sec('Klasörlerim'), add); list.appendChild(row);
-  if (!store.folders.length) list.appendChild(sideEmpty('Ders klasörlerini ekle; içlerindeki sunumlar burada listelenir.'));
-  for (const dir of store.folders) list.appendChild(folderBlock(dir));
+  list.setAttribute('aria-labelledby', sideTab === 'folders' ? 'tabFolders' : 'tabRecent');
+  if (sideTab === 'recent') {
+    if (!items.length) list.appendChild(sideEmpty('Henüz açılmış PDF yok.'));
+    for (const [p] of items) {
+      const name = p.split(/[\\/]/).pop();
+      list.appendChild(recItem(p, name.replace(/\.pdf$/i, ''), placeOf(p)));
+    }
+  } else {
+    const row = document.createElement('div'); row.className = 'side-tab-top';
+    const add = document.createElement('button'); add.type = 'button'; add.className = 'add'; add.textContent = '+ Klasör ekle'; add.addEventListener('click', addFolder);
+    row.appendChild(add); list.appendChild(row);
+    if (!store.folders.length) list.appendChild(sideEmpty('Ders klasörlerini ekle; içlerindeki sunumlar burada listelenir.'));
+    for (const dir of store.folders) list.appendChild(folderBlock(dir));
+  }
   applyFilter();
 }
+for (const b of document.querySelectorAll('.side-tabs [role="tab"]')) b.addEventListener('click', () => setSideTab(b.dataset.tab));
+$('.side-tabs').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  e.preventDefault(); e.stopPropagation(); setSideTab(sideTab === 'folders' ? 'recent' : 'folders');
+  const t = $('.side-tabs [aria-selected="true"]'); if (t) t.focus();
+});
 function folderBlock(dir) {
   const box = document.createElement('div'); box.className = 'fold' + (store.foldOpen[dir] === false ? ' shut' : ''); box.dataset.dir = dir;
   const head = document.createElement('div'); head.className = 'fold-h'; head.tabIndex = 0; head.setAttribute('role', 'button'); head.title = dir;
@@ -1183,7 +1198,7 @@ async function addFolder() {
   if (!dir) return;
   const isNew = !store.folders.includes(dir);
   if (isNew) store.folders.push(dir);
-  store.foldOpen[dir] = true; persistView(); buildRecent();
+  store.foldOpen[dir] = true; sideTab = 'folders'; persistView(); buildRecent();
   const box = [...document.querySelectorAll('#recentList .fold')].find((b) => b.dataset.dir === dir);
   if (box) { box.scrollIntoView({ block: 'nearest' }); if (isNew) renameFolder(box); }
 }
