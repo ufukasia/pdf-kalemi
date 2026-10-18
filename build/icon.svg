@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7b6bff"/>
+      <stop offset="1" stop-color="#3a2bc4"/>
+    </linearGradient>
+    <linearGradient id="spark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff3c4"/>
+      <stop offset=".55" stop-color="#ffc94d"/>
+      <stop offset="1" stop-color="#ff8a3d"/>
+    </linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#1a1060" flood-opacity=".35"/>
+    </filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- BG -->
+  <rect id="bgShape" width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- Sayfa -->
+  <g filter="url(#sh)">
+    <path d="M132 84h168l84 84v248a24 24 0 0 1-24 24H132a24 24 0 0 1-24-24V108a24 24 0 0 1 24-24z" fill="#fff"/>
+    <path d="M300 84v60a24 24 0 0 0 24 24h60z" fill="#d6d0ff"/>
+  </g>
+  <!-- Metin satırları -->
+  <rect class="detail" x="148" y="140" width="112" height="16" rx="8" fill="#c9c3f5"/>
+  <rect class="detail" x="148" y="180" width="168" height="16" rx="8" fill="#c9c3f5"/>
+  <!-- Mürekkep izi: kalemle yazılmış, uçları incelen dalga -->
+  <path d="M146 262 C 176 214, 206 214, 222 250 S 262 300, 290 256 S 330 214, 346 240
+           C 334 226, 306 238, 292 272 S 250 324, 218 268 S 180 236, 146 262 Z" fill="#2b2470"/>
+  <!-- PDF etiketi -->
+  <rect x="86" y="324" width="176" height="76" rx="18" fill="#e5484d"/>
+  <text class="detail" x="174" y="377" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="800" font-size="50" letter-spacing="2" fill="#fff">PDF</text>
+  <!-- Yapay zeka yıldızı -->
+  <g filter="url(#glow)">
+    <path d="M384 268 C 392 330, 406 344, 466 352 C 406 360, 392 374, 384 436 C 376 374, 362 360, 302 352 C 362 344, 376 330, 384 268 Z" fill="url(#spark)"/>
+    <path d="M318 270 C 321 290, 326 295, 346 298 C 326 301, 321 306, 318 326 C 315 306, 310 301, 290 298 C 310 295, 315 290, 318 270 Z" fill="#fff6d6"/>
+  </g>
+</svg>

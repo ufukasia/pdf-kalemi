@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, shell, clipboard, nativeImage } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, shell, clipboard, nativeImage, ClipboardItem } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -57,7 +57,10 @@ ipcMain.handle('open-external', (_e, url) => { if (typeof url === 'string' && /^
 ipcMain.handle('claude-handoff', async (_e, dataUrl, target) => {
   const img = typeof dataUrl === 'string' && dataUrl.startsWith('data:image/') ? nativeImage.createFromDataURL(dataUrl) : null;
   if (!img || img.isEmpty()) return { ok: false };
-  clipboard.writeImage(img);
+  // Electron 44'te pano, tarayıcıdaki gibi ClipboardItem ile yazılır (writeImage kaldırıldı).
+  // Windows bunu PNG ve Bitmap olarak sunar; her programa yapıştırılabilir.
+  if (typeof clipboard.writeImage === 'function') clipboard.writeImage(img);
+  else await clipboard.write([new ClipboardItem({ 'image/png': new Blob([img.toPNG()], { type: 'image/png' }) })]);
   const hasApp = !!app.getApplicationNameForProtocol('claude://');
   const useApp = target !== 'web' && hasApp;
   try { await shell.openExternal(useApp ? 'claude://claude.ai/new?surface=chat' : 'https://claude.ai/new'); } catch (err) { return { ok: true, opened: false, app: useApp }; }
