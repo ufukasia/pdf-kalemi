@@ -211,21 +211,26 @@ body.pinned #curtain.open #bar { box-shadow: none; border-bottom: 1px solid var(
 .ai-turn.hint .ai-q { font-style: normal; font-weight: 600; color: var(--fg); }
 #rowVoiceModels { display: none; }
 .localvoice #rowVoiceModels { display: flex; }
-#clFab { position: fixed; left: 0; top: 0; z-index: 9; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; touch-action: none;
-  display: flex; align-items: center; justify-content: center; opacity: .96; background: #fff; color: #d97757;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, .35), 0 0 0 2px rgba(217, 119, 87, .55); transition: box-shadow .12s, opacity .2s; }
+#clFab { --tc: #d97757; position: fixed; left: 0; top: 0; z-index: 9; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; touch-action: none;
+  display: flex; align-items: center; justify-content: center; opacity: .96; background: #fff; color: var(--tc);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .35), 0 0 0 2px color-mix(in srgb, var(--tc) 60%, transparent); transition: box-shadow .12s, opacity .2s; }
 #clFab[hidden] { display: none; }
 #clFab:hover { opacity: 1; }
 #clFab.drag { opacity: .75; cursor: grabbing; transition: none; }
 #clFab svg { width: 30px; height: 30px; pointer-events: none; }
+#clFab .i-send { display: block; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; width: 28px; height: 28px; }
+#clFab .i-star { display: none; }
+#clFab[data-target="claude"] .i-star { display: block; }
+#clFab[data-target="claude"] .i-send { display: none; }
+#clFab .lbl { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 5px; padding: 3px 7px; border-radius: 8px; background: var(--tc); color: #fff; font: 600 11px/1 var(--font); white-space: nowrap; pointer-events: none; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); }
 #clFab .i-ok { display: none; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-#clFab[data-state="busy"] .i-star { animation: aispin 1s linear infinite; }
+#clFab[data-state="busy"] svg:not(.i-ok) { animation: aispin 1s linear infinite; }
 #clFab[data-state="done"] { background: #1a9b5a; box-shadow: 0 8px 22px rgba(0, 0, 0, .35), 0 0 0 3px #1a9b5a; }
-#clFab[data-state="done"] .i-star { display: none; }
+#clFab[data-state="done"] svg:not(.i-ok) { display: none; }
 #clFab[data-state="done"] .i-ok { display: block; }
 #clFab[data-state="error"] { box-shadow: 0 8px 22px rgba(0, 0, 0, .35), 0 0 0 3px #ec2552; }
-#rowClTarget { display: none; }
-.claudedesk #rowClTarget { display: flex; }
+#rowClWhere { display: none; }
+.aktardesk #rowClWhere:not([hidden]) { display: flex; }
 #aiPanel { position: fixed; z-index: 10; display: flex; flex-direction: column; background: var(--bar); color: var(--fg); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 14px 44px rgba(0, 0, 0, .35); overflow: hidden; }
 #aiPanel[hidden] { display: none; }
 #aiPanel header { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 14px; border-bottom: 1px solid var(--line); flex: none; }
@@ -470,10 +475,11 @@ html, body { overscroll-behavior: none; }
           <label class="opt"><span><b>Asistan balonu</b><small>Sahnede sürükleyip istediğin yere koyabileceğin düğme. Kısayol: Y</small></span><input type="checkbox" class="switch" id="aiFabOpt"></label>
           <p class="opt-note">Soru gönderdiğinde o slaytın görüntüsü ve sorunun metni, cevap üretmesi için OpenRouter üzerinden seçtiğin modele gönderilir. Ücretsiz modellerin sağlayıcıları bu verileri kaydedebilir.</p>
         </section>
-        <section id="secClaude"><h3>Claude balonu</h3>
-          <label class="opt"><span><b>Claude balonu</b><small id="clNote"></small></span><input type="checkbox" class="switch" id="clFabOpt"></label>
-          <div class="opt" id="rowClTarget"><span><b>Claude nerede açılsın</b><small id="clTargetNote"></small></span><select id="clTarget" class="opt-sel" aria-label="Claude nerede açılsın"><option value="app">Claude uygulaması</option><option value="web">claude.ai (tarayıcı)</option></select></div>
-          <p class="opt-note">Kısayol: C. Bu balon kendi aboneliğinle, Claude'un kendi penceresinde çalışır; API anahtarı gerekmez. Uygulama yalnızca görüntüyü hazırlar ve Claude'u açar, gönderme her zaman sende.</p>
+        <section id="secAktar"><h3>Yapay zekâya aktar</h3>
+          <label class="opt"><span><b>Aktar balonu</b><small id="clNote"></small></span><input type="checkbox" class="switch" id="clFabOpt"></label>
+          <div class="opt"><span><b>Hangi yapay zekâ</b><small id="clTargetNote"></small></span><select id="clTarget" class="opt-sel" aria-label="Hangi yapay zekâ"></select></div>
+          <div class="opt" id="rowClWhere"><span><b>Nerede açılsın</b><small>Uygulama kurulu değilse her zaman sitesi açılır.</small></span><select id="clWhere" class="opt-sel" aria-label="Nerede açılsın"><option value="app">Uygulama</option><option value="web">Tarayıcı</option></select></div>
+          <p class="opt-note">Kısayol: C. Balon kendi aboneliğinle, seçtiğin yapay zekânın kendi penceresinde çalışır; API anahtarı gerekmez. Uygulama yalnızca görüntüyü hazırlar ve onu açar, gönderme her zaman sende.</p>
         </section>
         <section id="secSes"><h3>Ses</h3>
           <div class="opt"><span><b>Konuşmayı anlama</b><small id="spSttNote"></small></span><select id="spStt" class="opt-sel" aria-label="Konuşmayı anlama servisi"></select></div>
@@ -529,9 +535,11 @@ html, body { overscroll-behavior: none; }
     <svg class="i-stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>
   </span>
 </button>
-<button id="clFab" type="button" data-state="idle" aria-label="Claude'a hazırla (C)" title="Claude'a hazırla (C): sayfayı ya da seçili alanı panoya kopyalar ve Claude'u açar. Sürükleyerek taşı." hidden>
+<button id="clFab" type="button" data-state="idle" data-target="claude" aria-label="Yapay zekâya aktar (C)" hidden>
   <svg class="i-star" viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><path d="M11 2.5h2l-.4 7.2h-1.2z"/><path d="M11 2.5h2l-.4 7.2h-1.2z" transform="rotate(40 12 12)"/><path d="M11 2.5h2l-.4 7.2h-1.2z" transform="rotate(80 12 12)"/><path d="M11 2.5h2l-.4 7.2h-1.2z" transform="rotate(125 12 12)"/><path d="M11 2.5h2l-.4 7.2h-1.2z" transform="rotate(165 12 12)"/><path d="M11 2.5h2l-.4 7.2h-1.2z" transform="rotate(200 12 12)"/><path d="M11 2.5h2l-.4 7.2h-1.2z" transform="rotate(240 12 12)"/><path d="M11 2.5h2l-.4 7.2h-1.2z" transform="rotate(282 12 12)"/><path d="M11 2.5h2l-.4 7.2h-1.2z" transform="rotate(320 12 12)"/><circle cx="12" cy="12" r="2.6"/></g></svg>
+  <svg class="i-send" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="13" height="11" rx="2"/><path d="M3.5 14l3.5-3.5 3 3 2-2 3.5 3.5"/><circle cx="12" cy="8.5" r="1.2"/><path d="M14.5 19.5L20.5 13.5M16 13.5h4.5V18"/></svg>
   <svg class="i-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+  <span class="lbl" aria-hidden="true"></span>
 </button>
 <section id="aiPanel" data-state="idle" aria-label="Yapay zeka asistanı" hidden>
   <header><b>Asistan</b><span id="aiStatus"></span>
@@ -550,5 +558,5 @@ html, body { overscroll-behavior: none; }
 <script src="app.js"></script>
 <script src="speech.js"></script>
 <script src="ai.js"></script>
-<script src="claude.js"></script>
+<script src="aktar.js"></script>
 </body></html>

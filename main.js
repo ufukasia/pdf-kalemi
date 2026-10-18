@@ -2,6 +2,7 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, shell, clipboard
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { execFile, spawn } = require('child_process');
 
 // Kalem için en düşük gecikme: pencerenin gizlenince yavaşlamasını kapat.
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
@@ -52,21 +53,58 @@ else {
 
 // PDF içindeki web bağlantıları varsayılan tarayıcıda açılır; yalnızca http(s) ve e-posta.
 ipcMain.handle('open-external', (_e, url) => { if (typeof url === 'string' && /^(https?:|mailto:)/i.test(url)) shell.openExternal(url); return true; });
-// Claude balonu: görüntüyü panoya kopyalar ve Claude'u açar; göndermeyi kullanıcı Claude'da kendisi yapar.
-// Claude masaüstü uygulaması kuruluysa (claude:// bağlantısı) yeni sohbetle açılır, değilse claude.ai tarayıcıda açılır.
-ipcMain.handle('claude-handoff', async (_e, dataUrl, target) => {
+// Aktar balonu: görüntüyü panoya kopyalar ve seçilen yapay zekâyı açar; göndermeyi kullanıcı orada kendisi yapar.
+// Uygulaması kuruluysa (Başlat menüsünde bulunursa) uygulama, değilse sitesi tarayıcıda açılır. Antigravity yalnız uygulamadır.
+const AI_TARGETS = {
+  claude: { app: /^Claude$/, proto: 'claude://claude.ai/new?surface=chat', url: 'https://claude.ai/new' },
+  chatgpt: { app: /^ChatGPT$/i, url: 'https://chatgpt.com/' },
+  gemini: { app: /^(Google )?Gemini$/i, url: 'https://gemini.google.com/app' },
+  antigravity: { app: /^Antigravity$/i, alt: /^Antigravity IDE$/i, url: '' },
+  codex: { app: /^(OpenAI )?Codex$/i, url: 'https://chatgpt.com/codex' }
+};
+// Başlat menüsündeki uygulamalar (ad + AppID); bir kez okunur, ayarlar açılınca yenilenebilir.
+let startApps = null;
+function listStartApps(fresh) {
+  if (startApps && !fresh) return startApps;
+  startApps = new Promise((resolve) => {
+    if (process.platform !== 'win32') { resolve([]); return; }
+    const cmd = '[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-StartApps | Select-Object Name, AppID | ConvertTo-Json -Compress';
+    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { windowsHide: true, timeout: 20000, maxBuffer: 8 << 20 }, (err, out) => {
+      try { const j = JSON.parse(String(out).trim() || '[]'); resolve((Array.isArray(j) ? j : [j]).filter((a) => a && a.Name && a.AppID)); } catch (e) { resolve([]); }
+    });
+  });
+  return startApps;
+}
+async function findAiApp(key) {
+  const t = AI_TARGETS[key]; if (!t) return null;
+  const apps = await listStartApps();
+  return apps.find((a) => t.app.test(a.Name)) || (t.alt && apps.find((a) => t.alt.test(a.Name))) || null;
+}
+async function aiApps(fresh) {
+  if (fresh) await listStartApps(true);
+  const out = {};
+  for (const k of Object.keys(AI_TARGETS)) { const a = await findAiApp(k); out[k] = a ? a.Name : ''; }
+  if (!out.claude && app.getApplicationNameForProtocol('claude://')) out.claude = 'Claude';
+  return out;
+}
+ipcMain.handle('ai-handoff', async (_e, dataUrl, key, where) => {
+  const t = AI_TARGETS[key]; if (!t) return { ok: false };
   const img = typeof dataUrl === 'string' && dataUrl.startsWith('data:image/') ? nativeImage.createFromDataURL(dataUrl) : null;
   if (!img || img.isEmpty()) return { ok: false };
   // Electron 44'te pano, tarayıcıdaki gibi ClipboardItem ile yazılır (writeImage kaldırıldı).
   // Windows bunu PNG ve Bitmap olarak sunar; her programa yapıştırılabilir.
   if (typeof clipboard.writeImage === 'function') clipboard.writeImage(img);
   else await clipboard.write([new ClipboardItem({ 'image/png': new Blob([img.toPNG()], { type: 'image/png' }) })]);
-  const hasApp = !!app.getApplicationNameForProtocol('claude://');
-  const useApp = target !== 'web' && hasApp;
-  try { await shell.openExternal(useApp ? 'claude://claude.ai/new?surface=chat' : 'https://claude.ai/new'); } catch (err) { return { ok: true, opened: false, app: useApp }; }
-  return { ok: true, opened: true, app: useApp, hasApp };
+  const wantApp = where !== 'web' || !t.url;
+  try {
+    if (wantApp && t.proto && app.getApplicationNameForProtocol(t.proto.split(':')[0] + '://')) { await shell.openExternal(t.proto); return { ok: true, opened: true, via: 'app' }; }
+    const a = wantApp ? await findAiApp(key) : null;
+    if (a) { spawn('explorer.exe', ['shell:AppsFolder\\' + a.AppID], { detached: true, stdio: 'ignore', windowsHide: true }).unref(); return { ok: true, opened: true, via: 'app', name: a.Name }; }
+    if (t.url) { await shell.openExternal(t.url); return { ok: true, opened: true, via: 'web' }; }
+    return { ok: true, opened: false, reason: 'noapp' };
+  } catch (err) { return { ok: true, opened: false }; }
 });
-ipcMain.handle('claude-has-app', () => !!app.getApplicationNameForProtocol('claude://'));
+ipcMain.handle('ai-apps', (_e, fresh) => aiApps(!!fresh));
 // Yerel ses: Whisper (konuşma tanıma) ve Piper (Türkçe konuşma). Ağır modüller ilk kullanımda yüklenir.
 const voice = require('./voice');
 voice.setProgress((p) => { if (win && !win.isDestroyed()) win.webContents.send('voice-progress', p); });
