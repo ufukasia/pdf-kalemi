@@ -87,7 +87,73 @@ async function aiApps(fresh) {
   if (!out.claude && app.getApplicationNameForProtocol('claude://')) out.claude = 'Claude';
   return out;
 }
-ipcMain.handle('ai-handoff', async (_e, dataUrl, key, where) => {
+// Otomatik yapıştırma: hedef pencereyi (uygulama ya da sitesi açık tarayıcı) bulup öne getirir, yazma kutusu
+// hazırlansın diye kısa bir süre tanır ve Ctrl+V gönderir. Hedef gerçekten önde değilse hiçbir tuşa basılmaz.
+// Gönder'e her zaman kullanıcı basar. Antigravity bir kod editörü olduğundan yapıştırma yanlış yere gidebilir: elle yapılır.
+const PASTE = {
+  claude: { app: ['claude'], title: 'Claude' }, chatgpt: { app: ['chatgpt'], title: 'ChatGPT' },
+  gemini: { app: ['gemini'], title: 'Gemini' }, codex: { app: ['codex'], title: 'Codex|ChatGPT' }
+};
+const BROWSERS = ['msedge', 'chrome', 'firefox', 'brave', 'opera', 'vivaldi', 'arc', 'browser'];
+const PASTE_PS = `
+Add-Type @"
+using System; using System.Runtime.InteropServices; using System.Text;
+public static class PkW {
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+  [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr h);
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
+  [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+  [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool attach);
+  [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+}
+"@
+$procs = $env:PK_PROCS -split ','; $rx = $env:PK_TITLE; $end = [DateTime]::Now.AddMilliseconds([int]$env:PK_TIMEOUT)
+function Title($h) { $sb = New-Object System.Text.StringBuilder 512; [void][PkW]::GetWindowText($h, $sb, 512); $sb.ToString() }
+# Hedef: listedeki süreçlerden başlığı uyan ana pencere
+function Find { foreach ($n in $procs) { foreach ($p in (Get-Process -Name $n -ErrorAction SilentlyContinue)) {
+  if ($p.MainWindowHandle -ne [IntPtr]::Zero -and $p.MainWindowTitle -match $rx) { return $p.MainWindowHandle } } }; return [IntPtr]::Zero }
+# Öne getir: Windows yalnız öndeki programa izin verdiği için öndeki pencerenin girdisine geçici olarak bağlanılır
+function Front($h) {
+  if ([PkW]::IsIconic($h)) { [void][PkW]::ShowWindow($h, 9) }
+  $x = 0; $fg = [PkW]::GetForegroundWindow(); $ft = [PkW]::GetWindowThreadProcessId($fg, [ref]$x); $me = [PkW]::GetCurrentThreadId()
+  [void][PkW]::AttachThreadInput($me, $ft, $true); [void][PkW]::BringWindowToTop($h); [void][PkW]::SetForegroundWindow($h); [void][PkW]::AttachThreadInput($me, $ft, $false) }
+while ([DateTime]::Now -lt $end) {
+  $h = Find
+  if ($h -ne [IntPtr]::Zero) {
+    if ([PkW]::GetForegroundWindow() -ne $h) { Front $h; Start-Sleep -Milliseconds 300 }
+    if ([PkW]::GetForegroundWindow() -eq $h) {
+      Start-Sleep -Milliseconds ([int]$env:PK_SETTLE)
+      if ([PkW]::GetForegroundWindow() -eq $h -and (Title $h) -match $rx) {
+        [PkW]::keybd_event(0x11, 0, 0, [UIntPtr]::Zero); [PkW]::keybd_event(0x56, 0, 0, [UIntPtr]::Zero)
+        [PkW]::keybd_event(0x56, 0, 2, [UIntPtr]::Zero); [PkW]::keybd_event(0x11, 0, 2, [UIntPtr]::Zero)
+        'YAPISTIRILDI'; exit 0
+      }
+    }
+  }
+  Start-Sleep -Milliseconds 250
+}
+'ZAMAN_ASIMI'`;
+function autoPaste(key, via) {
+  const p = PASTE[key]; if (!p || process.platform !== 'win32') return Promise.resolve(false);
+  const env = Object.assign({}, process.env, {
+    PK_PROCS: (via === 'app' ? p.app : BROWSERS).join(','), PK_TITLE: p.title,
+    PK_TIMEOUT: '25000', PK_SETTLE: via === 'app' ? '1500' : '1800'
+  });
+  return new Promise((resolve) => {
+    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', PASTE_PS], { env, windowsHide: true, timeout: 40000 },
+      (err, out) => resolve(/YAPISTIRILDI/.test(String(out || ''))));
+  });
+}
+ipcMain.handle('ai-handoff', async (_e, dataUrl, key, where, paste) => {
+  const r = await handoff(dataUrl, key, where);
+  if (r.ok && r.opened && paste !== false && PASTE[key]) r.pasted = await autoPaste(key, r.via);
+  return r;
+});
+async function handoff(dataUrl, key, where) {
   const t = AI_TARGETS[key]; if (!t) return { ok: false };
   const img = typeof dataUrl === 'string' && dataUrl.startsWith('data:image/') ? nativeImage.createFromDataURL(dataUrl) : null;
   if (!img || img.isEmpty()) return { ok: false };
@@ -103,7 +169,7 @@ ipcMain.handle('ai-handoff', async (_e, dataUrl, key, where) => {
     if (t.url) { await shell.openExternal(t.url); return { ok: true, opened: true, via: 'web' }; }
     return { ok: true, opened: false, reason: 'noapp' };
   } catch (err) { return { ok: true, opened: false }; }
-});
+}
 ipcMain.handle('ai-apps', (_e, fresh) => aiApps(!!fresh));
 // Yerel ses: Whisper (konuşma tanıma) ve Piper (Türkçe konuşma). Ağır modüller ilk kullanımda yüklenir.
 const voice = require('./voice');

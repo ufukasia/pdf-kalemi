@@ -231,6 +231,8 @@ body.pinned #curtain.open #bar { box-shadow: none; border-bottom: 1px solid var(
 #clFab[data-state="error"] { box-shadow: 0 8px 22px rgba(0, 0, 0, .35), 0 0 0 3px #ec2552; }
 #rowClWhere { display: none; }
 .aktardesk #rowClWhere:not([hidden]) { display: flex; }
+#rowClPaste { display: none; }
+.aktardesk #rowClPaste:not([hidden]) { display: flex; }
 #aiPanel { position: fixed; z-index: 10; display: flex; flex-direction: column; background: var(--bar); color: var(--fg); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 14px 44px rgba(0, 0, 0, .35); overflow: hidden; }
 #aiPanel[hidden] { display: none; }
 #aiPanel header { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 14px; border-bottom: 1px solid var(--line); flex: none; }
@@ -478,6 +480,7 @@ html, body { overscroll-behavior: none; }
         <section id="secAktar"><h3>Yapay zekâya aktar</h3>
           <label class="opt"><span><b>Aktar balonu</b><small id="clNote"></small></span><input type="checkbox" class="switch" id="clFabOpt"></label>
           <div class="opt"><span><b>Hangi yapay zekâ</b><small id="clTargetNote"></small></span><select id="clTarget" class="opt-sel" aria-label="Hangi yapay zekâ"></select></div>
+          <label class="opt" id="rowClPaste"><span><b>Otomatik yapıştır</b><small>Yapay zekâ açılıp öne gelince görüntüyü yazma kutusuna kendisi yapıştırır; klavye gerekmez. Gönder'e yine sen basarsın.</small></span><input type="checkbox" class="switch" id="clPaste"></label>
           <div class="opt" id="rowClWhere"><span><b>Nerede açılsın</b><small>Uygulama kurulu değilse her zaman sitesi açılır.</small></span><select id="clWhere" class="opt-sel" aria-label="Nerede açılsın"><option value="app">Uygulama</option><option value="web">Tarayıcı</option></select></div>
           <p class="opt-note">Kısayol: C. Balon kendi aboneliğinle, seçtiğin yapay zekânın kendi penceresinde çalışır; API anahtarı gerekmez. Uygulama yalnızca görüntüyü hazırlar ve onu açar, gönderme her zaman sende.</p>
         </section>

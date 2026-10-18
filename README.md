@@ -75,8 +75,8 @@ Kenarlardan çekerek açılırlar:
 - İkinci bir balon: **Claude, ChatGPT, Gemini, Antigravity ya da Codex**. Hangisi olacağı Ayarlar'dan seçilir; balon o yapay zekânın renginde olur ve altında adı yazar. Sürüklenip istenen yere konur, kısayolu `C`.
 - Basınca o anki sayfa panoya kopyalanır ve seçilen yapay zekâ açılır. Kalemle bir alan seçiliyse yalnızca o alan kopyalanır.
 - Uygulaması bilgisayarda kuruluysa (Başlat menüsünde bulunursa) uygulama, değilse sitesi tarayıcıda açılır: claude.ai, chatgpt.com, gemini.google.com, chatgpt.com/codex. Claude uygulaması doğrudan yeni bir sohbetle açılır. Antigravity'nin sitesi olmadığından yalnızca kuruluysa açılır.
-- Orada `Ctrl+V` yapıp sorunuzu yazarsınız ya da sesli modda söylersiniz. **Gönder'e her zaman siz basarsınız.** Kendi aboneliğinizle, o yapay zekânın kendi penceresinde çalışır.
-- Android'de balon Paylaş menüsünü açar; istediğiniz uygulamayı seçtiğinizde görüntü ekli olarak gelir.
+- Masaüstünde yapay zekâ açılıp öne gelince görüntü **yazma kutusuna kendiliğinden yapıştırılır** (klavye gerekmez; Ayarlar'dan kapatılabilir). Siz sorunuzu yazarsınız ya da sesli modda söylersiniz. **Gönder'e her zaman siz basarsınız.** Kendi aboneliğinizle, o yapay zekânın kendi penceresinde çalışır.
+- Android uygulamasında ve tabletlerde balon Paylaş menüsünü açar; istediğiniz uygulamayı seçtiğinizde görüntü ekli olarak gelir.
 
 ### 🔊 Ses servisleri
 Ses servisleri Ayarlar → Ses bölümünden seçilir. Her servisin yanında "API anahtarı nedir, nasıl alınır?" açıklaması bulunur.

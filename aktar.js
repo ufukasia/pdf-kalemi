@@ -13,11 +13,14 @@ const TARGETS = {
   antigravity: { name: 'Antigravity', dat: 'Antigravity\'ye', acc: 'Antigravity\'yi', short: 'Antigravity', color: '#2f6fe4', web: '' },
   codex: { name: 'Codex', dat: 'Codex\'e', acc: 'Codex\'i', short: 'Codex', color: '#6e56f7', web: 'https://chatgpt.com/codex' }
 };
-const cfg = Object.assign({ fab: true, target: 'claude', where: 'app', pos: null }, (() => { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) { return {}; } })());
+const cfg = Object.assign({ fab: true, target: 'claude', where: 'app', paste: true, pos: null }, (() => { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) { return {}; } })());
 if (cfg.target === 'app' || cfg.target === 'web') { cfg.where = cfg.target; cfg.target = 'claude'; } // eski ayar biçimi
 const saveCfg = () => { try { localStorage.setItem(LS, JSON.stringify(cfg)); } catch (e) {} };
 const desk = !!(window.desktop && window.desktop.aiHandoff);
-const android = /Android/i.test(navigator.userAgent);
+// Dokunmatik tablet/telefonda paylaş menüsü kullanılır: görüntü seçilen uygulamaya ekli gider, klavye gerekmez.
+// (Samsung tabletler tarayıcıda "masaüstü sitesi" kipinde açıldığından yalnız "Android" yazısına bakılmaz.)
+const touchDev = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 1;
+const android = /Android/i.test(navigator.userAgent) || (touchDev && !/Windows/i.test(navigator.userAgent));
 const usable = (k) => desk || !!TARGETS[k].web; // Antigravity yalnız masaüstü uygulamasıdır
 if (!TARGETS[cfg.target] || !usable(cfg.target)) cfg.target = 'claude';
 const fab = $('#clFab');
@@ -54,11 +57,12 @@ async function send() {
   try {
     if (desk) {
       const shot = await capture(); if (!shot) throw new Error('Görüntü alınamadı.');
-      const r = await window.desktop.aiHandoff(shot.canvas.toDataURL('image/png'), cfg.target, cfg.where);
+      const r = await window.desktop.aiHandoff(shot.canvas.toDataURL('image/png'), cfg.target, cfg.where, cfg.paste);
       if (!r || !r.ok) throw new Error('Görüntü panoya kopyalanamadı.');
       flash('done');
       if (!r.opened) toast(what(shot) + (r.reason === 'noapp' ? t.name + ' bu bilgisayarda kurulu değil; kurduktan sonra balon onu açar.' : t.name + ' açılamadı; kendin açıp Ctrl+V yapabilirsin.'), 6000);
-      else toast(what(shot) + (r.via === 'app' ? t.name + ' uygulamasında' : t.name + ' sitesinde') + ' Ctrl+V yap, sorunu yaz ya da söyle, Gönder\'e sen bas.', 6000);
+      else if (r.pasted) toast((shot.part ? 'Seçili alan ' : 'Sayfa ' + shot.page + ' ') + t.dat + ' yapıştırıldı. Sorunu yaz ya da söyle, Gönder\'e sen bas.', 6000);
+      else toast(what(shot) + (r.via === 'app' ? t.name + ' uygulamasında' : t.name + ' sitesinde') + ' yazma kutusuna basılı tutup Yapıştır de (ya da Ctrl+V), Gönder\'e sen bas.', 7000);
       return;
     }
     // Android uygulaması: görüntü Android'in paylaş menüsüyle doğrudan seçilen uygulamaya verilir.
@@ -148,11 +152,13 @@ function fillTargets() {
 function syncNote() {
   const t = T(), has = installed[cfg.target];
   $('#clNote').textContent = desk
-    ? 'Balona basınca sayfa (kalemle bir alan seçtiysen yalnızca o alan) panoya kopyalanır ve ' + t.name + ' açılır. Ctrl+V yapıp sorunu yazar ya da sesli söylersin; Gönder\'e sen basmadıkça hiçbir şey gitmez.'
+    ? 'Balona basınca sayfa (kalemle bir alan seçtiysen yalnızca o alan) ' + t.name + ' açılınca yazma kutusuna kendiliğinden yapıştırılır. Sorunu yazar ya da sesli söylersin; Gönder\'e sen basmadıkça hiçbir şey gitmez.'
     : android ? 'Balona basınca Paylaş menüsü açılır; ' + t.name + ' uygulamasını seç, görüntü ekli gelir. Gönder\'e sen basmadıkça hiçbir şey gitmez.'
     : 'Balona basınca sayfa panoya kopyalanır ve ' + t.name + ' sitesi açılır. Ctrl+V yapıp Gönder\'e sen basarsın.';
   if (!desk) return;
   $('#clWhere').value = cfg.where;
+  $('#clPaste').checked = !!cfg.paste; $('#rowClPaste').hidden = cfg.target === 'antigravity';
+  if (cfg.target === 'antigravity') $('#clNote').textContent = 'Balona basınca sayfa panoya kopyalanır ve Antigravity açılır. Antigravity bir kod editörü olduğundan görüntüyü sohbet kutusuna sen yapıştırırsın (basılı tut → Yapıştır ya da Ctrl+V).';
   $('#rowClWhere').hidden = !t.web; // Antigravity'nin sitesi yok
   $('#clTargetNote').textContent = has ? t.name + ' uygulaması bu bilgisayarda kurulu (' + has + ').'
     : t.web ? t.name + ' uygulaması bu bilgisayarda yok; ' + t.web.replace(/^https:\/\//, '').replace(/\/$/, '') + ' tarayıcıda açılır.'
@@ -164,6 +170,7 @@ $('#clTarget').addEventListener('change', (e) => { cfg.target = e.target.value; 
 if (desk) {
   document.documentElement.classList.add('aktardesk');
   $('#clWhere').addEventListener('change', (e) => { cfg.where = e.target.value; saveCfg(); });
+  $('#clPaste').addEventListener('change', (e) => { cfg.paste = e.target.checked; saveCfg(); });
   const scan = (fresh) => window.desktop.aiApps(fresh).then((m) => { installed = m || {}; syncUi(); }).catch(() => {});
   scan(false);
   // Ayarlar her açıldığında yeniden tara: sonradan kurulan uygulamalar da görünsün.
