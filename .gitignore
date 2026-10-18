@@ -4,3 +4,15 @@ dist/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Android (Capacitor): derleme çıktıları ve üretilen web kopyası; imza anahtarı zaten depo dışında (%USERPROFILE%\.pdfkalemi)
+mobile/node_modules/
+mobile/www/
+mobile/android/app/build/
+mobile/android/build/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/app/src/main/assets/public/
+*.jks
+*.keystore
+android-imza.properties

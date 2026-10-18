@@ -113,20 +113,36 @@ Ses servisleri Ayarlar → Ses bölümünden seçilir. Her servisin yanında "AP
 ## Kurulum
 
 ### Telefon ve tablet (Android)
-1. Chrome ya da Samsung Internet ile **https://ufukasia.github.io/pdf-kalemi/** adresini açın.
-2. Menüden **"Ana ekrana ekle" / "Uygulamayı yükle"** seçeneğine dokunun.
-3. Uygulama çevrimdışı da çalışır.
+**Android uygulaması (APK):** `PDF-Kalemi-android.apk` dosyasını telefona aktarıp açın (OneDrive, kablo ya da e-posta ile). İlk kurulumda Android "bilinmeyen kaynaklardan uygulama yükleme" izni ister. Bu, Play Store dışından kurulan her uygulama için istenen izindir.
+- İnternetsiz çalışır; uygulamanın bütün dosyaları içindedir.
+- Dosya yöneticisinde bir PDF'e dokununca **"PDF Kalemi ile aç"**, başka bir uygulamada **"Paylaş → PDF Kalemi"** çıkar.
+- **Klasörlerim**, Android'in klasör seçicisiyle çalışır; seçilen klasörün izni kalıcıdır.
+- Kaydetme ve aktar balonu Android'in paylaş menüsünü açar (OneDrive, Drive, Claude, ChatGPT, Gemini…).
+- S Pen basıncı ve yan tuşu desteklenir; Android 7 ve sonrası.
+
+**Ya da tarayıcıdan:** Chrome veya Samsung Internet ile **https://ufukasia.github.io/pdf-kalemi/** adresini açıp menüden **"Uygulamayı yükle"** seçeneğine dokunun.
 
 ### Windows
-Kaynaktan kurulum dosyası üretmek için:
+| Dosya | Bilgisayar |
+|---|---|
+| `PDF-Kalemi-Kurulum-arm64.exe` | ARM işlemcili (Surface Pro 11, Snapdragon) |
+| `PDF-Kalemi-Kurulum-x64.exe` | Intel / AMD işlemcili (çoğu bilgisayar) |
+| `PDF-Kalemi-arm64.exe`, `PDF-Kalemi-x64.exe` | Kurulum gerektirmeyen taşınabilir sürümler |
+
+Kurulum tek tıklıdır ve yönetici izni istemez. Ayarlar → Sistem bölümünden PDF Kalemi'ni **PDF dosyaları için varsayılan uygulama** yapabilirsiniz.
+
+### Hepsini derlemek
 
 ```bash
 npm install
-npm run dist        # ARM64 (Surface Pro 11): dist/PDF-Kalemi-Kurulum-arm64.exe
-npm run dist:x64    # Intel/AMD bilgisayarlar
+npm run dist:all       # Windows ARM64 + x64 ve Android APK → dist/
+npm run dist:win       # yalnız Windows (ARM64 + x64)
+npm run dist:android   # yalnız Android APK
 ```
 
-Kurulum tek tıklıdır ve yönetici izni istemez. Ayarlar → Sistem bölümünden PDF Kalemi'ni **PDF dosyaları için varsayılan uygulama** yapabilirsiniz.
+- Derleme, Windows'un yol uzunluğu sınırına ve Gradle'ın Türkçe karakterli yollardaki sorunlarına takılmamak için kısa klasörlerde yapılır (`%LOCALAPPDATA%Temppkb`, `pka`). Çıktılar proje içindeki `dist/` klasörüne kopyalanır.
+- Android için gereken Java 21 ve Android SDK yoksa ilk derlemede kendiliğinden `%LOCALAPPDATA%pk-android` klasörüne indirilir. Android Studio gerekmez.
+- **APK imza anahtarı depoda değildir.** İlk derlemede `%USERPROFILE%.pdfkalemi` klasöründe oluşturulur. Bu klasörü yedekleyin: güncellemeler aynı anahtarla imzalanmalıdır; anahtar kaybolursa telefondaki uygulamanın silinip yeniden kurulması gerekir.
 
 ### Geliştirme
 
@@ -145,12 +161,14 @@ app.js                PDF görüntüleme, mürekkep motoru, seçim, sunum, dış
 ai.js                 Yapay zekâ asistanı (balon, kayıt, inceleme, OpenRouter)
 aktar.js              Aktar balonu (görüntüyü panoya kopyalar; Claude, ChatGPT, Gemini, Antigravity, Codex'i açar)
 speech.js             Ses servisleri (Azure, ElevenLabs, tarayıcı)
-web.js                Web/PWA için masaüstü köprüsünün karşılığı (IndexedDB, dosya erişimi)
+web.js                Web/PWA ve Android için masaüstü köprüsünün karşılığı (IndexedDB, dosya erişimi, Capacitor)
 sw.js                 Çevrimdışı önbellek
 main.js / preload.js  Electron ana süreci ve güvenli köprü
 voice.js              Yerel Whisper ve Piper modelleri (masaüstü)
 build/                Windows simgesi ve kurulum betiği (PDF ilişkilendirme)
 lib/                  pdf.js ve pdf-lib
+scripts/dist.js       Tek komutla bütün kurulum dosyaları (Windows ARM64 + x64, Android)
+mobile/               Android uygulaması: Capacitor projesi, yerel eklenti (birlikte aç, klasörler), APK derleme betiği
 ```
 
 ## Gizlilik ve API anahtarları
@@ -170,6 +188,7 @@ lib/                  pdf.js ve pdf-lib
 - [pdf.js](https://github.com/mozilla/pdf.js) (Apache-2.0): PDF görüntüleme
 - [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT): PDF dışa aktarma
 - [Electron](https://www.electronjs.org/) (MIT) ve [electron-builder](https://www.electron.build/) (MIT)
+- [Capacitor](https://capacitorjs.com/) (MIT): Android uygulaması
 - [Transformers.js](https://github.com/huggingface/transformers.js) (Apache-2.0) ve ONNX Runtime (MIT): yerel Whisper
 - [Piper](https://github.com/rhasspy/piper) ve espeak-ng: yerel Türkçe seslendirme. Modeller ilk kullanımda indirilir ve kendi lisanslarına tabidir.
 

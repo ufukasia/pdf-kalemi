@@ -61,6 +61,14 @@ async function send() {
       else toast(what(shot) + (r.via === 'app' ? t.name + ' uygulamasında' : t.name + ' sitesinde') + ' Ctrl+V yap, sorunu yaz ya da söyle, Gönder\'e sen bas.', 6000);
       return;
     }
+    // Android uygulaması: görüntü Android'in paylaş menüsüyle doğrudan seçilen uygulamaya verilir.
+    if (window.desktop && window.desktop.shareFile) {
+      const shot = await capture(); if (!shot) throw new Error('Görüntü alınamadı.');
+      const bytes = new Uint8Array(await (await toBlob(shot.canvas)).arrayBuffer());
+      if (await window.desktop.shareFile(bytes, 'pdf-kalemi-sayfa-' + shot.page + '.png', t.name)) { flash('done'); toast('Paylaş menüsünden ' + t.acc + ' seç; görüntü ekli gelir, Gönder\'e sen bas.', 5000); }
+      else flash('idle');
+      return;
+    }
     // Web / telefon: tarayıcılar dokunuştan sonraki kısa süre içinde izin verir; görüntü hazırlanırken bu süre korunur.
     const shotP = capture();
     if (android && navigator.canShare) {

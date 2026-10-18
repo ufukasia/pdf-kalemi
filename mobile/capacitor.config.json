@@ -1,0 +1,11 @@
+{
+  "appId": "io.github.ufukasia.pdfkalemi",
+  "appName": "PDF Kalemi",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#1b1d23",
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false
+  }
+}
