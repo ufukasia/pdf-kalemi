@@ -2,6 +2,8 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 contextBridge.exposeInMainWorld('desktop', {
   openPdf: () => ipcRenderer.invoke('open-pdf'),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  claudeHandoff: (dataUrl, target) => ipcRenderer.invoke('claude-handoff', dataUrl, target),
+  claudeHasApp: () => ipcRenderer.invoke('claude-has-app'),
   openDefaultApps: () => ipcRenderer.invoke('open-default-apps'),
   voiceStatus: () => ipcRenderer.invoke('voice-status'),
   voicePrepare: () => ipcRenderer.invoke('voice-prepare'),

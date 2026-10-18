@@ -71,6 +71,12 @@ Kenarlardan çekerek açılırlar:
 - **Hiçbir şey siz "Gönder"e basmadan gitmez.** Önce ne gönderileceğini görür, sesi yeniden kaydedebilir ya da iptal edebilirsiniz.
 - Yanıt sesli okunur.
 
+### ✳️ Claude balonu (API anahtarı gerekmez)
+- İkinci, turuncu bir balon. Ayarlar'dan açılıp kapatılır, sürüklenip istenen yere konur. Kısayolu `C`.
+- Basınca o anki sayfa panoya kopyalanır ve **Claude uygulaması yeni bir sohbetle açılır**. Kalemle bir alan seçiliyse yalnızca o alan kopyalanır. Claude uygulaması kurulu değilse claude.ai tarayıcıda açılır.
+- Claude'da `Ctrl+V` yapıp sorunuzu yazarsınız ya da Claude'un sesli modunda söylersiniz. **Gönder'e her zaman siz basarsınız.** Kendi Claude aboneliğinizle, Claude'un kendi penceresinde çalışır.
+- Android'de balon Paylaş menüsünü açar. Claude uygulamasını seçtiğinizde görüntü ekli olarak gelir.
+
 ### 🔊 Ses servisleri
 Ses servisleri Ayarlar → Ses bölümünden seçilir. Her servisin yanında "API anahtarı nedir, nasıl alınır?" açıklaması bulunur.
 
@@ -91,6 +97,7 @@ Ses servisleri Ayarlar → Ses bölümünden seçilir. Her servisin yanında "AP
 |---|---|
 | `P` `H` `L` `A` `R` `O` `E` `Z` | Kalem, fosforlu, çizgi, ok, dikdörtgen, elips, silgi, lazer |
 | `1` `2` `3` `4` | Uç: tükenmez, dolma kalem, fırça, kaligrafi |
+| `Y` / `C` | Asistan balonu / Claude balonu |
 | `T` | Üst araç çubuğunu aç/kapat |
 | `→` / `PageDown` / `Boşluk` | Sonraki sayfa |
 | `←` / `PageUp` | Önceki sayfa |
@@ -135,6 +142,7 @@ Web sürümü için klasörü herhangi bir statik sunucuyla açmanız yeterlidir
 index.html            Arayüz, çekmeceler, ayarlar
 app.js                PDF görüntüleme, mürekkep motoru, seçim, sunum, dışa aktarma
 ai.js                 Yapay zekâ asistanı (balon, kayıt, inceleme, OpenRouter)
+claude.js             Claude balonu (görüntüyü panoya kopyalar, Claude'u açar)
 speech.js             Ses servisleri (Azure, ElevenLabs, tarayıcı)
 web.js                Web/PWA için masaüstü köprüsünün karşılığı (IndexedDB, dosya erişimi)
 sw.js                 Çevrimdışı önbellek

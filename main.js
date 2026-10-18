@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, shell, clipboard, nativeImage } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -52,6 +52,18 @@ else {
 
 // PDF içindeki web bağlantıları varsayılan tarayıcıda açılır; yalnızca http(s) ve e-posta.
 ipcMain.handle('open-external', (_e, url) => { if (typeof url === 'string' && /^(https?:|mailto:)/i.test(url)) shell.openExternal(url); return true; });
+// Claude balonu: görüntüyü panoya kopyalar ve Claude'u açar; göndermeyi kullanıcı Claude'da kendisi yapar.
+// Claude masaüstü uygulaması kuruluysa (claude:// bağlantısı) yeni sohbetle açılır, değilse claude.ai tarayıcıda açılır.
+ipcMain.handle('claude-handoff', async (_e, dataUrl, target) => {
+  const img = typeof dataUrl === 'string' && dataUrl.startsWith('data:image/') ? nativeImage.createFromDataURL(dataUrl) : null;
+  if (!img || img.isEmpty()) return { ok: false };
+  clipboard.writeImage(img);
+  const hasApp = !!app.getApplicationNameForProtocol('claude://');
+  const useApp = target !== 'web' && hasApp;
+  try { await shell.openExternal(useApp ? 'claude://claude.ai/new?surface=chat' : 'https://claude.ai/new'); } catch (err) { return { ok: true, opened: false, app: useApp }; }
+  return { ok: true, opened: true, app: useApp, hasApp };
+});
+ipcMain.handle('claude-has-app', () => !!app.getApplicationNameForProtocol('claude://'));
 // Yerel ses: Whisper (konuşma tanıma) ve Piper (Türkçe konuşma). Ağır modüller ilk kullanımda yüklenir.
 const voice = require('./voice');
 voice.setProgress((p) => { if (win && !win.isDestroyed()) win.webContents.send('voice-progress', p); });

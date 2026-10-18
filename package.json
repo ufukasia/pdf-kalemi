@@ -29,6 +29,7 @@
       "web.js",
       "speech.js",
       "ai.js",
+      "claude.js",
       "ai-logo.png",
       "icon.png",
       "lib/**",
