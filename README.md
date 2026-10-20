@@ -1,96 +1,112 @@
 <p align="center">
-  <img src="icon-192.png" width="112" alt="PDF Kalemi simgesi">
+  <img src="icon-192.png" width="120" alt="PDF Kalemi simgesi">
 </p>
 
 <h1 align="center">PDF Kalemi</h1>
 
 <p align="center">
-  Kalemle PDF üzerine yazma, ders anlatma ve sunum uygulaması.<br>
-  Surface Pen ve S Pen için baskıya duyarlı, mürekkep hissi veren bir kalem; bir de sesle soru sorulabilen yapay zekâ asistanı.
+  <b>Surface Pro için kalemle kontrol edilen, yapay zekâ destekli PDF görüntüleyici ve sunum aracı</b><br>
+  <sub>A pen-first, AI-assisted PDF viewer and presentation tool for Surface Pro — also on Windows x64, Android and the web.</sub>
 </p>
 
 <p align="center">
-  <a href="https://ufukasia.github.io/pdf-kalemi/"><b>🌐 Tarayıcıda aç</b></a> ·
+  <img alt="Windows ARM64 ve x64" src="https://img.shields.io/badge/Windows-ARM64%20%7C%20x64-0078D4?logo=windows&logoColor=white">
+  <img alt="Android" src="https://img.shields.io/badge/Android-7%2B-3DDC84?logo=android&logoColor=white">
+  <img alt="Web / PWA" src="https://img.shields.io/badge/Web-PWA-5A0FC8?logo=pwa&logoColor=white">
+  <img alt="Lisans MIT" src="https://img.shields.io/badge/lisans-MIT-blue">
+</p>
+
+<p align="center">
+  <a href="https://ufukasia.github.io/pdf-kalemi/"><b>🌐 Tarayıcıda dene</b></a> ·
   <a href="#kurulum">Kurulum</a> ·
-  <a href="#ozellikler">Özellikler</a> ·
-  <a href="#gizlilik-ve-api-anahtarlari">Gizlilik</a>
+  <a href="#surface-proda-kalemle-kullanım">Kalemle kullanım</a> ·
+  <a href="#yapay-zekâ">Yapay zekâ</a> ·
+  <a href="#gizlilik-ve-api-anahtarları">Gizlilik</a>
 </p>
 
 ---
 
-## Neden?
+PDF Kalemi, ders slaytlarını ve PDF belgelerini **Surface Pen ile kâğıda yazar gibi** işaretlemek, sınıfta **slayt slayt sunmak** ve ekrandaki sayfayı **yapay zekâya sormak** için yapıldı. Her şey kalemle yapılabilir: yazmak, silmek, seçip taşımak, döndürmek, sayfa çevirmek ve menüleri açmak. Klavye ya da fare gerekmez.
 
-Derste beamer slaytlarının üzerine kalemle yazıp çizmek, slaytlar arasında hızla gezinmek ve aynı dosyayı tablette, telefonda ya da başka bir bilgisayarda açabilmek için yapıldı. Ana hedef, **kâğıda dolma kalemle yazıyormuş gibi hissettiren bir kalem.**
+- ✒️ **Gerçek mürekkep hissi.** Çizgi baskıya, hıza ve yöne göre incelip kalınlaşır; dolma kalem, fırça ve kaligrafi uçları vardır.
+- 🖊️ **Kalemin her tuşu iş görür.** Arka uç silgidir. Yan tuşa basılı tutarak çizdiğiniz alan seçilir; seçilenler sürüklenir, döndürülür, büyütülüp küçültülür.
+- 🖥️ **Sunuma hazır.** Tam ekran slayt kipi, parmakla dokunarak ya da sunum kumandasıyla ileri/geri, dikkat çeken neon lazer kalemi.
+- 🤖 **Yapay zekâ destekli.** Sayfayı sesle sorun, cevabı doğal Türkçe sesle dinleyin. Ya da sayfayı tek dokunuşla Claude, ChatGPT, Gemini veya Codex'e aktarın; görüntü sohbete kendiliğinden yapıştırılır.
+- 📂 **Ders klasörleriniz elinizin altında.** Klasörlerinizi ekleyip istediğiniz adı verin (ör. *Mat1*); OneDrive klasörleri de olur.
+- 🔒 **Gizliliğe saygılı.** PDF'leriniz ve notlarınız cihazınızda kalır; siz "Gönder"e basmadıkça hiçbir şey dışarı gitmez.
 
-Uygulama iki biçimde çalışır:
+## Surface Pro'da kalemle kullanım
 
-| | Masaüstü (Windows) | Web / PWA |
-|---|---|---|
-| Nerede | Surface Pro 11 (ARM64), diğer Windows PC'ler | Android telefon/tablet, her tarayıcı |
-| PDF'leri bu uygulamayla açma | ✅ Varsayılan uygulama olabilir | ✅ Kurulu PWA'da (Edge/Chrome) |
-| Çevrimdışı | ✅ | ✅ Hizmet çalışanı ile |
-| Yerel ses modelleri (Whisper / Piper) | ✅ | — |
-| Klasör ekleme | ✅ | ✅ Destekleyen tarayıcılarda |
+| Kalemle / parmakla | Ne olur |
+|---|---|
+| Uçla yaz | Baskıya duyarlı mürekkep (uç tipi ve renk üst araç çubuğundan) |
+| Kalemi çevirip arka uçla sil | Silgi; araç değiştirmeye gerek yok |
+| **Yan tuş basılıyken** çevresine çiz | Yazılanları seçer |
+| Seçimin içinden sürükle | Taşır |
+| Seçimin **sağ üst** köşesi | Döndürür (90°'nin katlarına yapışır) |
+| Seçimin **diğer köşeleri** | Büyütür / küçültür (çizgi kalınlığı da orantılı) |
+| Seçimin dışına dokun (kalem ya da parmak) | Seçimi bırakır, iz bırakmaz |
+| Parmakla **tek dokunuş / çift dokunuş** | Sonraki / önceki slayt |
+| Kenarlardaki **oklu küçük diller** | Menüleri açar (üst: araçlar, sol: klasörler, sağ: sayfalar, alt: ayarlar) |
+| Sürüklenebilir **balonlar** | Yapay zekâ asistanı ve "yapay zekâya aktar" |
+
+"Parmakla çiz" kapalıyken parmak yalnızca kaydırır ve yakınlaştırır; yalnız kalem yazar ve avuç içi ekrana değse bile iz kalmaz. Kenar dilleri ekranın en kenarına yapışık değildir; bu yüzden Windows'un kenardan kaydırma hareketleri ve telefonun sistem çubukları tetiklenmez.
 
 ## Özellikler
 
-### ✒️ Kalem
-- **Baskıya duyarlı mürekkep:** çizgi baskıya, hıza ve yöne göre incelip kalınlaşır. Başlangıç ve bitişler sivrilir.
-- **Uç tipleri:** tükenmez, dolma kalem, kaligrafi (yatık uç), fırça.
-- Fosforlu kalem, düz çizgi, ok, dikdörtgen, elips ve silgi. Silgi, kalemin arka ucuyla da çalışır.
-- **Neon lazer kalemi:** sunumda dikkat çekmek için parlayan, birkaç saniyede kaybolan iz.
-- Düşük gecikme: `pointerrawupdate` ve senkronsuz çizim yüzeyleri kullanılır. "Parmakla çiz" kapalıyken parmak yalnızca kaydırır ve yakınlaştırır, sadece kalem yazar.
-
-### ✂️ Seç, taşı, döndür, boyutlandır
-- **Kalemin yan tuşuna basılı tutarak** (ya da farenin sağ tuşuyla) yazılanların çevresine bir alan çizin. Çizgilerin yarısından fazlası alanın içinde kalırsa seçilir.
-- Seçimin içinden tutup **sürükleyin**.
-- **Sağ üst köşedeki** tutamaçla **döndürün**: 90°'nin katlarına yaklaşınca yapışır.
-- **Diğer köşelerdeki** tutamaçlarla **büyütüp küçültün**: çizgi kalınlığı da orantılı değişir.
-- `Delete` seçimi siler, `Esc` seçimi kaldırır. Hepsi geri alınabilir.
-- Ayarlardan yan tuşu silgi olarak da kullanabilirsiniz.
+### ✒️ Kalem ve mürekkep
+- **Baskıya duyarlı, uçları sivrilen mürekkep.** Çizgiler pürüzsüz eğrilerle çizilir.
+- **Uç tipleri:** tükenmez, dolma kalem, fırça ve kaligrafi (yatık uç). Baskı hassasiyeti ayarlanabilir.
+- Fosforlu kalem, düz çizgi, ok, dikdörtgen, elips ve silgi.
+- **Neon lazer kalemi:** sunumda parlayıp birkaç saniyede kaybolan iz.
+- **Düşük gecikme:** `pointerrawupdate` ve senkronsuz çizim yüzeyleri sayesinde mürekkep kalemin ucundan geri kalmaz.
+- Kalemin yan tuşu Ayarlar'dan silgi olarak da kullanılabilir. Bütün işlemler geri alınabilir.
 
 ### 🖥️ Sunum
-- Slayt slayt sunum kipi; sayfalar arasında boşluk yoktur.
-- **Parmakla tek dokunuş ileri, çift dokunuş geri.** Ayarlardan kapatılabilir.
-- PDF içindeki **bağlantılar ve içindekiler** (outline) doğru yere götürür; `Alt+←` ile geri dönülür.
-- Sayfa numarasına git (`G`).
+- Sayfa ekrana sığınca **slayt slayt sunum kipi** devreye girer; slaytlar arasında siyah boşluk kalmaz.
+- **İleri/geri:** parmakla tek/çift dokunuş, klavye oklarıyla, sunum kumandasıyla (PageUp/PageDown) ya da fare tekerleğiyle. Sayfa büyütülmüşse ilk basış önce sayfayı tam genişliğe getirir.
+- PDF içindeki **bağlantılar ve içindekiler** doğru sayfaya götürür; `Alt+←` ile geri dönülür.
+- Sağdaki **film şeridi** bütün sunumu küçük resimlerle gösterir.
+
+### 🗂️ Dosyalar ve klasörler
+- Sol menüde iki sekme: **Klasörlerim** ve **Son açılanlar**. Klasörlere istediğiniz adı verebilirsiniz; içlerindeki PDF'ler alt klasörlerle birlikte listelenir ve aranabilir.
+- Her PDF kaldığınız sayfadan açılır. Mürekkep her dosya için otomatik saklanır.
+- **PDF olarak kaydetme** vektöreldir: yazılar büyütüldüğünde bulanıklaşmaz.
+- Windows'ta PDF Kalemi **varsayılan PDF uygulaması** olabilir. Android'de dosya yöneticisinde "PDF Kalemi ile aç" seçeneği çıkar.
 
 ### 🗂️ Çekmeceler
-Kenarlardan çekerek açılırlar:
+Kenarlardaki oklu dillere dokunarak ya da onları sürükleyerek açılırlar:
 
 | Kenar | İçerik |
 |---|---|
-| ⬇️ Üst | Kalem araç çubuğu (tek satır). 📌 ile sabitlenebilir. |
-| ➡️ Sol | İki sekme: **Klasörlerim** (varsayılan) ve **Son açılanlar**. Klasörlere istediğiniz adı verebilirsiniz (ör. *Mat1*). OneDrive klasörleri de eklenebilir. |
-| ⬅️ Sağ | Tüm sunumu küçük resimlerle gösteren film şeridi |
+| ⬇️ Üst | Araç çubuğu (tek satır). 📌 ile açık sabitlenebilir. |
+| ➡️ Sol | Klasörlerim ve Son açılanlar |
+| ⬅️ Sağ | Sayfaların küçük resimleri (film şeridi) |
 | ⬆️ Alt | **Ayarlar:** parmak, sunum, kalem, yapay zekâ, ses, sistem, görünüm |
 
-### 🤖 Yapay zekâ asistanı
-- Ekranda gezdirilebilen bir **balon**: basın, sorunuzu sesle sorun (ya da yazın).
-- O anki sayfanın görüntüsü ve sorunuz **OpenRouter** üzerindeki **ücretsiz** görüntü modellerine gider. Bir model yanıt vermezse sıradakine geçilir.
-- **Hiçbir şey siz "Gönder"e basmadan gitmez.** Önce ne gönderileceğini görür, sesi yeniden kaydedebilir ya da iptal edebilirsiniz.
-- Yanıt sesli okunur.
+## Yapay zekâ
 
-### ✳️ Yapay zekâya aktar balonu (API anahtarı gerekmez)
-- İkinci bir balon: **Claude, ChatGPT, Gemini, Antigravity ya da Codex**. Hangisi olacağı Ayarlar'dan seçilir; balon o yapay zekânın renginde olur ve altında adı yazar. Sürüklenip istenen yere konur, kısayolu `C`.
-- Basınca o anki sayfa panoya kopyalanır ve seçilen yapay zekâ açılır. Kalemle bir alan seçiliyse yalnızca o alan kopyalanır.
-- Uygulaması bilgisayarda kuruluysa (Başlat menüsünde bulunursa) uygulama, değilse sitesi tarayıcıda açılır: claude.ai, chatgpt.com, gemini.google.com, chatgpt.com/codex. Claude uygulaması doğrudan yeni bir sohbetle açılır. Antigravity'nin sitesi olmadığından yalnızca kuruluysa açılır.
-- Masaüstünde yapay zekâ açılıp öne gelince görüntü **yazma kutusuna kendiliğinden yapıştırılır** (klavye gerekmez; Ayarlar'dan kapatılabilir). Siz sorunuzu yazarsınız ya da sesli modda söylersiniz. **Gönder'e her zaman siz basarsınız.** Kendi aboneliğinizle, o yapay zekânın kendi penceresinde çalışır.
-- Android uygulamasında ve tabletlerde balon Paylaş menüsünü açar; istediğiniz uygulamayı seçtiğinizde görüntü ekli olarak gelir.
+### 🤖 Sesli asistan
+- Ekranda gezdirilebilen bir **balon**: basın ve o anki slayt hakkında sorunuzu sesle sorun (ya da yazın).
+- Sayfanın görüntüsü ve sorunuz **OpenRouter** üzerindeki **ücretsiz** görüntü anlayan modellere gider. Bir model meşgulse sıradakine geçilir.
+- **Hiçbir şey siz "Gönder"e basmadan gitmez.** Önce ne gönderileceğini görürsünüz; sesi yeniden kaydedebilir ya da iptal edebilirsiniz.
+- Cevap doğal Türkçe sesle okunur.
+
+### ✳️ Yapay zekâya aktar (API anahtarı gerekmez)
+- İkinci balon sayfayı ya da kalemle seçtiğiniz alanı **Claude, ChatGPT, Gemini, Antigravity veya Codex**'e aktarır. Hangisinin kullanılacağı Ayarlar'dan seçilir; balon o yapay zekânın renginde olur ve altında adı yazar.
+- Uygulaması kuruluysa uygulama, değilse sitesi açılır. Claude uygulaması doğrudan yeni bir sohbetle açılır.
+- **Masaüstünde görüntü sohbetin yazma kutusuna kendiliğinden yapıştırılır.** Klavyesiz tablette de çalışır. Sorunuzu yazar ya da sesli modda söylersiniz; **Gönder'e her zaman siz basarsınız.** Kendi aboneliğinizle, o yapay zekânın kendi penceresinde çalışır.
+- Android'de ve tabletlerde paylaş menüsü açılır; seçtiğiniz uygulamaya görüntü ekli gider.
 
 ### 🔊 Ses servisleri
-Ses servisleri Ayarlar → Ses bölümünden seçilir. Her servisin yanında "API anahtarı nedir, nasıl alınır?" açıklaması bulunur.
+Ayarlar → Ses bölümünden seçilir; her servisin yanında "API anahtarı nedir, nasıl alınır?" açıklaması vardır.
 
 | Servis | Konuşmayı anlama | Seslendirme | Ücret |
 |---|---|---|---|
-| **Azure Speech** (varsayılan) | ✅ | ✅ Doğal Türkçe sesler (Emel, Ahmet…) | Ücretsiz katman: aylık 5 saat tanıma ve 0,5 milyon karakter seslendirme |
+| **Azure Speech** (varsayılan) | ✅ | ✅ Doğal Türkçe sesler (Emel, Ahmet…) | Ücretsiz katman: aylık 5 saat tanıma, 0,5 milyon karakter seslendirme |
 | ElevenLabs | — | ✅ En insansı ses | Sınırlı ücretsiz kullanım, sonrası ücretli |
-| Yerel (yalnız masaüstü) | ✅ Whisper small | ✅ Piper (tr_TR) | Ücretsiz, internetsiz |
+| Yerel (yalnız Windows) | ✅ Whisper small | ✅ Piper (Türkçe) | Ücretsiz, internetsiz |
 | Tarayıcı | ✅ | ✅ Sistem sesleri | Ücretsiz |
-
-### 💾 Kaydetme
-- Mürekkep her dosya için otomatik saklanır ve kaldığınız sayfadan devam edilir.
-- **PDF olarak dışa aktarma** vektörel yapılır: yazılar büyütüldüğünde bulanıklaşmaz.
 
 ## Kısayollar
 
@@ -98,12 +114,10 @@ Ses servisleri Ayarlar → Ses bölümünden seçilir. Her servisin yanında "AP
 |---|---|
 | `P` `H` `L` `A` `R` `O` `E` `Z` | Kalem, fosforlu, çizgi, ok, dikdörtgen, elips, silgi, lazer |
 | `1` `2` `3` `4` | Uç: tükenmez, dolma kalem, fırça, kaligrafi |
-| `Y` / `C` | Asistan balonu / Yapay zekâya aktar balonu |
+| `Y` / `C` | Sesli asistan / yapay zekâya aktar |
 | `T` | Üst araç çubuğunu aç/kapat |
-| `→` / `PageDown` / `Boşluk` | Sonraki sayfa |
-| `←` / `PageUp` | Önceki sayfa |
-| `Home` / `End` | İlk / son sayfa |
-| `G` | Sayfaya git |
+| `→` `PageDown` `Boşluk` / `←` `PageUp` | Sonraki / önceki sayfa |
+| `Home` / `End` / `G` | İlk sayfa / son sayfa / sayfaya git |
 | `Alt+←` / `Alt+→` | Bağlantıdan geri / ileri |
 | `+` / `-` / `0` | Yakınlaştır / uzaklaştır / genişliğe sığdır |
 | `Ctrl+Z` / `Ctrl+Y` | Geri al / ileri al |
@@ -112,73 +126,60 @@ Ses servisleri Ayarlar → Ses bölümünden seçilir. Her servisin yanında "AP
 
 ## Kurulum
 
-### Telefon ve tablet (Android)
-**Android uygulaması (APK):** `PDF-Kalemi-android.apk` dosyasını telefona aktarıp açın (OneDrive, kablo ya da e-posta ile). İlk kurulumda Android "bilinmeyen kaynaklardan uygulama yükleme" izni ister. Bu, Play Store dışından kurulan her uygulama için istenen izindir.
-- İnternetsiz çalışır; uygulamanın bütün dosyaları içindedir.
-- Dosya yöneticisinde bir PDF'e dokununca **"PDF Kalemi ile aç"**, başka bir uygulamada **"Paylaş → PDF Kalemi"** çıkar.
-- **Klasörlerim**, Android'in klasör seçicisiyle çalışır; seçilen klasörün izni kalıcıdır.
-- Kaydetme ve aktar balonu Android'in paylaş menüsünü açar (OneDrive, Drive, Claude, ChatGPT, Gemini…).
-- S Pen basıncı ve yan tuşu desteklenir; Android 7 ve sonrası.
+| Cihaz | Dosya | Not |
+|---|---|---|
+| **Surface Pro 11** ve diğer ARM bilgisayarlar | `PDF-Kalemi-Kurulum-arm64.exe` | Snapdragon işlemciler için yerel sürüm |
+| Intel / AMD Windows bilgisayarlar | `PDF-Kalemi-Kurulum-x64.exe` | Kalemsiz bilgisayarlarda fare ve parmakla da çalışır |
+| Kurulumsuz (taşınabilir) | `PDF-Kalemi-arm64.exe`, `PDF-Kalemi-x64.exe` | USB bellekten çalışır |
+| Android telefon ve tablet | `PDF-Kalemi-android.apk` | Android 7 ve sonrası; S Pen desteklenir |
+| Her tarayıcı | https://ufukasia.github.io/pdf-kalemi/ | "Uygulamayı yükle" ile kurulabilir, internetsiz de çalışır |
 
-**Ya da tarayıcıdan:** Chrome veya Samsung Internet ile **https://ufukasia.github.io/pdf-kalemi/** adresini açıp menüden **"Uygulamayı yükle"** seçeneğine dokunun.
+**Windows:** Kurulum tek tıklıdır ve yönetici izni istemez. Ayarlar → Sistem bölümünden PDF Kalemi'ni PDF dosyaları için varsayılan uygulama yapabilirsiniz.
 
-### Windows
-| Dosya | Bilgisayar |
-|---|---|
-| `PDF-Kalemi-Kurulum-arm64.exe` | ARM işlemcili (Surface Pro 11, Snapdragon) |
-| `PDF-Kalemi-Kurulum-x64.exe` | Intel / AMD işlemcili (çoğu bilgisayar) |
-| `PDF-Kalemi-arm64.exe`, `PDF-Kalemi-x64.exe` | Kurulum gerektirmeyen taşınabilir sürümler |
+**Android:** APK'yi telefona aktarıp açın (OneDrive, kablo ya da e-posta ile). Android ilk seferde "bilinmeyen kaynaklardan uygulama yükleme" izni ister; bu, Play Store dışından kurulan her uygulama için istenen izindir. Uygulama internetsiz çalışır. Klasörlerim, Android'in klasör seçicisiyle çalışır ve verilen izin kalıcıdır. Kaydetme ve aktar balonu Android'in paylaş menüsünü açar.
 
-Kurulum tek tıklıdır ve yönetici izni istemez. Ayarlar → Sistem bölümünden PDF Kalemi'ni **PDF dosyaları için varsayılan uygulama** yapabilirsiniz.
-
-### Hepsini derlemek
+## Geliştirme ve derleme
 
 ```bash
 npm install
+npm start              # Electron ile çalıştır
 npm run dist:all       # Windows ARM64 + x64 ve Android APK → dist/
 npm run dist:win       # yalnız Windows (ARM64 + x64)
 npm run dist:android   # yalnız Android APK
 ```
 
-- Derleme, Windows'un yol uzunluğu sınırına ve Gradle'ın Türkçe karakterli yollardaki sorunlarına takılmamak için kısa klasörlerde yapılır (`%LOCALAPPDATA%Temppkb`, `pka`). Çıktılar proje içindeki `dist/` klasörüne kopyalanır.
-- Android için gereken Java 21 ve Android SDK yoksa ilk derlemede kendiliğinden `%LOCALAPPDATA%pk-android` klasörüne indirilir. Android Studio gerekmez.
-- **APK imza anahtarı depoda değildir.** İlk derlemede `%USERPROFILE%.pdfkalemi` klasöründe oluşturulur. Bu klasörü yedekleyin: güncellemeler aynı anahtarla imzalanmalıdır; anahtar kaybolursa telefondaki uygulamanın silinip yeniden kurulması gerekir.
+- Derleme, Windows'un yol uzunluğu sınırına ve Gradle'ın Türkçe karakterli yollardaki sorunlarına takılmamak için kısa klasörlerde yapılır (`%LOCALAPPDATA%\Temp\pkb` ve `%LOCALAPPDATA%\Temp\pka`). Çıktılar proje içindeki `dist/` klasörüne kopyalanır.
+- Android için gereken Java 21 ve Android SDK yoksa ilk derlemede kendiliğinden `%LOCALAPPDATA%\pk-android` klasörüne indirilir. Android Studio gerekmez.
+- **APK imza anahtarı depoda değildir.** İlk derlemede `%USERPROFILE%\.pdfkalemi` klasöründe oluşturulur. Bu klasörü yedekleyin: güncellemeler aynı anahtarla imzalanmalıdır; anahtar kaybolursa telefondaki uygulamanın silinip yeniden kurulması gerekir.
+- Web sürümü için klasörü herhangi bir statik sunucuyla açmak yeterlidir (ör. `npx serve .`).
 
-### Geliştirme
-
-```bash
-npm install
-npm start           # Electron ile çalıştır
-```
-
-Web sürümü için klasörü herhangi bir statik sunucuyla açmanız yeterlidir (ör. `npx serve .`). Hizmet çalışanı yalnızca `https` ve `localhost` üzerinde etkinleşir.
-
-## Proje yapısı
+### Proje yapısı
 
 ```
 index.html            Arayüz, çekmeceler, ayarlar
 app.js                PDF görüntüleme, mürekkep motoru, seçim, sunum, dışa aktarma
-ai.js                 Yapay zekâ asistanı (balon, kayıt, inceleme, OpenRouter)
-aktar.js              Aktar balonu (görüntüyü panoya kopyalar; Claude, ChatGPT, Gemini, Antigravity, Codex'i açar)
+ai.js                 Sesli yapay zekâ asistanı (balon, kayıt, onay, OpenRouter)
+aktar.js              Yapay zekâya aktar balonu (Claude, ChatGPT, Gemini, Antigravity, Codex)
 speech.js             Ses servisleri (Azure, ElevenLabs, tarayıcı)
-web.js                Web/PWA ve Android için masaüstü köprüsünün karşılığı (IndexedDB, dosya erişimi, Capacitor)
+web.js                Web/PWA ve Android köprüsü (IndexedDB, dosya erişimi, Capacitor)
 sw.js                 Çevrimdışı önbellek
-main.js / preload.js  Electron ana süreci ve güvenli köprü
-voice.js              Yerel Whisper ve Piper modelleri (masaüstü)
-build/                Windows simgesi ve kurulum betiği (PDF ilişkilendirme)
+main.js / preload.js  Electron ana süreci ve güvenli köprü (otomatik yapıştırma dahil)
+voice.js              Yerel Whisper ve Piper modelleri (Windows)
+build/                Windows simgesi, kaynak SVG ve kurulum betiği (PDF ilişkilendirme)
 lib/                  pdf.js ve pdf-lib
-scripts/dist.js       Tek komutla bütün kurulum dosyaları (Windows ARM64 + x64, Android)
-mobile/               Android uygulaması: Capacitor projesi, yerel eklenti (birlikte aç, klasörler), APK derleme betiği
+scripts/dist.js       Tek komutla bütün kurulum dosyaları
+mobile/               Android uygulaması: Capacitor projesi, yerel eklenti, APK derleme betiği
 ```
 
 ## Gizlilik ve API anahtarları
 
 - **Bu depoda hiçbir API anahtarı yoktur.** OpenRouter, Azure ve ElevenLabs anahtarlarını her kullanıcı kendisi alır ve Ayarlar'dan girer.
-- Anahtarlar **yalnızca kendi cihazınızda** saklanır (tarayıcı/uygulama yerel depolaması). Hiçbir sunucuya kaydedilmez ve yalnızca ilgili servise doğrudan gönderilir.
+- Anahtarlar **yalnızca kendi cihazınızda** saklanır. Hiçbir sunucuya kaydedilmez, yalnızca ilgili servise doğrudan gönderilir.
 - PDF'leriniz ve mürekkebiniz cihazınızda kalır. Bulut eşitlemesi istiyorsanız dosyalarınızı OneDrive gibi bir klasörde tutabilirsiniz.
 - Dışarıya giden veriler yalnızca şunlardır:
   - siz **Gönder**'e bastığınızda sayfa görüntüsü ve sorunuz → OpenRouter;
-  - ses tanıma ya da seslendirme için ses veya metin → seçtiğiniz servis (Azure / ElevenLabs).
+  - ses tanıma ya da seslendirme için ses veya metin → seçtiğiniz servis (Azure / ElevenLabs);
+  - aktar balonuyla: görüntü yalnızca panoya kopyalanır; seçtiğiniz yapay zekâya siz gönderirsiniz.
 - Yerel ses kipinde hiçbir ses verisi cihazdan çıkmaz.
 
 > Kendi çatalınızı (fork) yayımlıyorsanız anahtarlarınızı asla koda ya da `.env` dosyasına yazıp depoya göndermeyin.
@@ -187,10 +188,12 @@ mobile/               Android uygulaması: Capacitor projesi, yerel eklenti (bir
 
 - [pdf.js](https://github.com/mozilla/pdf.js) (Apache-2.0): PDF görüntüleme
 - [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT): PDF dışa aktarma
-- [Electron](https://www.electronjs.org/) (MIT) ve [electron-builder](https://www.electron.build/) (MIT)
+- [Electron](https://www.electronjs.org/) (MIT) ve [electron-builder](https://www.electron.build/) (MIT): Windows uygulaması
 - [Capacitor](https://capacitorjs.com/) (MIT): Android uygulaması
 - [Transformers.js](https://github.com/huggingface/transformers.js) (Apache-2.0) ve ONNX Runtime (MIT): yerel Whisper
 - [Piper](https://github.com/rhasspy/piper) ve espeak-ng: yerel Türkçe seslendirme. Modeller ilk kullanımda indirilir ve kendi lisanslarına tabidir.
+
+Claude, ChatGPT, Gemini, Antigravity, Codex, Surface ve diğer adlar sahiplerinin markalarıdır. PDF Kalemi bu şirketlerle bağlantılı değildir; yalnızca onların uygulamalarını ya da sitelerini açar.
 
 ## Lisans
 

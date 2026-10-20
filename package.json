@@ -1,7 +1,7 @@
 {
   "name": "pdf-kalemi",
   "version": "1.0.0",
-  "description": "Kalemle PDF üzerine yazma, sunum ve yapay zeka asistanı (masaüstü + web)",
+  "description": "Surface Pro için kalemle kontrol edilen, yapay zekâ destekli PDF görüntüleyici ve sunum aracı (Windows, Android, web)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -94,5 +94,18 @@
     "@huggingface/transformers": "4.3.1",
     "onnxruntime-node": "1.30.0",
     "espeak-ng": "1.0.2"
-  }
+  },
+  "keywords": [
+    "pdf-viewer",
+    "surface-pro",
+    "pen",
+    "stylus",
+    "ink",
+    "annotation",
+    "presentation",
+    "ai",
+    "electron",
+    "capacitor",
+    "pwa"
+  ]
 }
