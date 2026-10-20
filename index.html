@@ -8,6 +8,14 @@
 <meta name="mobile-web-app-capable" content="yes">
 <title>PDF Kalemi</title>
 <style>
+/* Ekran kenarındaki sistem alanları (çentik, durum çubuğu, alttaki gezinme çubuğu). Tarayıcı env() ile,
+   Android uygulamasında Capacitor --safe-area-inset-* değişkenleriyle bildirir; büyük olanı kullanılır. */
+:root {
+  --sa-t: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --sa-r: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
+  --sa-b: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  --sa-l: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+}
 /* Layout: üstte tek satır araç çubuğu, altında kaydırılabilir sayfa alanı. Sayfalar her zaman beyaz kağıt, zemin temayı izler. */
 :root {
   --ground: #e6e9ee;
@@ -48,7 +56,7 @@ body {
 /* Toolbar */
 #bar {
   display: flex; flex-wrap: nowrap; align-items: center; gap: 6px 14px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
-  padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: calc(8px + var(--sa-t)) 8px; padding-left: max(16px, var(--sa-l)); padding-right: max(16px, var(--sa-r));
   background: var(--bar); border-bottom: 1px solid var(--line); flex: none;
 }
 #bar::-webkit-scrollbar { display: none; }
@@ -112,7 +120,7 @@ body {
 .tool.laser[aria-pressed="true"] svg { filter: drop-shadow(0 0 3px #ff1f4b); }
 
 #status {
-  position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  position: fixed; left: max(16px, var(--sa-l)); bottom: calc(14px + var(--sa-b));
   display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 999px; background: var(--bar);
   border: 1px solid var(--line); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none;
   box-shadow: 0 2px 10px rgba(0, 0, 0, .12);
@@ -120,7 +128,7 @@ body {
 #status b { color: var(--fg); font-weight: 600; }
 #ring { position: fixed; left: 0; top: 0; border: 1.5px solid #e5484d; border-radius: 50%; pointer-events: none; display: none; background: rgba(229, 72, 77, .08); z-index: 5; }
 #toast {
-  position: fixed; left: 50%; top: calc(76px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 20;
+  position: fixed; left: 50%; top: calc(76px + var(--sa-t)); transform: translateX(-50%); z-index: 20;
   max-width: min(92vw, 520px); padding: 10px 16px; border-radius: 10px; background: var(--fg); color: var(--bar);
   font-weight: 600; box-shadow: 0 6px 24px rgba(0, 0, 0, .3); opacity: 0; pointer-events: none; transition: opacity .18s;
 }
@@ -152,16 +160,13 @@ html, body { overflow: hidden; }
 #curtain.drag { transition: none; }
 #bar { border-bottom: 0; }
 #curtain.open #bar, #curtain.drag #bar { box-shadow: 0 6px 24px rgba(0, 0, 0, .18); }
-#grip { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); width: 132px; height: 30px; padding: 0; border: 0; background: transparent; cursor: grab; touch-action: none; display: flex; justify-content: center; align-items: flex-start; }
-#grip::after { content: ""; width: 54px; height: 5px; margin-top: 6px; border-radius: 3px; background: var(--muted); opacity: .4; transition: opacity .2s, width .2s; }
-#grip:hover::after, #curtain.open #grip::after { opacity: .75; width: 64px; }
 /* PDF bağlantıları: görünmez alan, kalem veya fare üstüne gelince belirir */
 .lnk { position: absolute; z-index: 3; cursor: pointer; border-radius: 3px; }
 .lnk:hover { background: rgba(31, 94, 255, .13); box-shadow: inset 0 0 0 1.5px rgba(31, 94, 255, .55); }
 .lnk.flash { animation: lnkflash 1.2s ease-out; }
 @keyframes lnkflash { from { background: rgba(31, 94, 255, .28); } to { background: transparent; } }
 #toc {
-  position: absolute; top: calc(100% + 6px); left: max(16px, env(safe-area-inset-left, 0px)); z-index: 2; width: min(420px, calc(100vw - 32px));
+  position: absolute; top: calc(100% + 6px); left: max(16px, var(--sa-l)); z-index: 2; width: min(420px, calc(100vw - 32px));
   max-height: min(70vh, 640px); overflow: auto; padding: 6px; background: var(--bar); color: var(--fg); border: 1px solid var(--line);
   border-radius: 12px; box-shadow: 0 10px 32px rgba(0, 0, 0, .22);
 }
@@ -276,10 +281,7 @@ body.pinned #curtain.open #bar { box-shadow: none; border-bottom: 1px solid var(
 .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; max-height: 80vh; display: flex; flex-direction: column; background: var(--bar); color: var(--fg); border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; transform: translateY(100%); transition: transform .24s cubic-bezier(.2, .8, .2, 1); will-change: transform; }
 .sheet.open { transform: translateY(0); box-shadow: 0 -8px 36px rgba(0, 0, 0, .28); }
 .sheet.drag { transition: none; }
-.sheet .sgrip { left: 50%; top: auto; bottom: 100%; width: 132px; height: 30px; margin: 0 0 0 -66px; align-items: flex-end; }
-.sheet .sgrip::after { width: 54px; height: 5px; margin-bottom: 6px; }
-.sheet .sgrip:hover::after, .sheet.open .sgrip::after { width: 64px; height: 5px; }
-.sheet-in { overflow: auto; padding: 4px max(20px, env(safe-area-inset-left, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)); overscroll-behavior: contain; touch-action: pan-y; }
+.sheet-in { overflow: auto; padding: 4px max(20px, var(--sa-l)) calc(18px + var(--sa-b)); overscroll-behavior: contain; touch-action: pan-y; }
 .sheet-h { display: flex; align-items: baseline; gap: 12px; padding: 14px 4px 6px; font-size: 16px; }
 .sheet-h span { color: var(--muted); font-size: 13px; }
 .sheet-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 4px 28px; }
@@ -316,10 +318,6 @@ html, body { overscroll-behavior: none; }
 .side-h .btn { width: auto; height: 34px; padding: 0 12px; }
 .side-list { flex: 1; overflow: auto; padding: 2px 10px 18px; scrollbar-width: thin; overscroll-behavior: contain; touch-action: pan-y; }
 .side-empty { color: var(--muted); padding: 12px 6px; }
-.sgrip { position: absolute; top: 50%; width: 24px; height: 120px; margin-top: -60px; padding: 0; border: 0; background: transparent; cursor: grab; touch-action: none; display: flex; align-items: center; justify-content: center; }
-.side.left .sgrip { left: 100%; } .side.right .sgrip { right: 100%; }
-.sgrip::after { content: ""; width: 5px; height: 54px; border-radius: 3px; background: var(--muted); opacity: .4; transition: opacity .2s, height .2s; }
-.sgrip:hover::after, .side.open .sgrip::after { opacity: .75; height: 64px; }
 .side-tabs { display: flex; gap: 2px; margin: 0 16px 10px; padding: 3px; flex: none; border: 1px solid var(--line); border-radius: 12px; background: var(--ground); }
 .side-tabs button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; font: inherit; font-size: 14px; color: var(--muted); background: transparent; border: 0; border-radius: 9px; cursor: pointer; touch-action: manipulation; }
 .side-tabs button:hover { color: var(--fg); }
@@ -330,6 +328,34 @@ html, body { overscroll-behavior: none; }
 .side-tab-top { display: flex; justify-content: flex-end; margin: 0 6px 6px; }
 .side-tab-top .add { font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
 .side-tab-top .add:hover { background: var(--hover); }
+/* Çekmece tutamakları: ekran kenarından içeride, oklu küçük birer dil. Telefonda sistem çubuklarının ve kenar
+   hareketlerinin, Windows'ta kenardan kaydırma hareketlerinin dışında kalır. Dokununca açılır/kapanır, sürüklenebilir. */
+#grip, .sgrip { position: absolute; padding: 0; border: 0; background: transparent; cursor: pointer; touch-action: none; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
+#grip::before, .sgrip::before { content: ""; position: absolute; border-radius: 12px; background: color-mix(in srgb, var(--bar) 88%, transparent); border: 1px solid var(--line); box-shadow: 0 3px 10px rgba(0, 0, 0, .28); transition: opacity .2s, transform .15s; opacity: .72; }
+#grip:hover::before, .sgrip:hover::before, #grip:active::before, .sgrip:active::before { opacity: 1; }
+#grip:active::before, .sgrip:active::before { transform: scale(.94); }
+#grip .chev, .sgrip .chev { position: relative; width: 18px; height: 18px; fill: none; stroke: var(--fg); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: .8; transition: transform .2s; pointer-events: none; }
+/* Üst: araç çubuğu */
+#grip { left: 50%; top: calc(100% + 10px + var(--sa-t)); transform: translateX(-50%); width: 96px; height: 44px; }
+#curtain.open #grip { top: calc(100% + 6px); }
+#grip::before { width: 64px; height: 26px; }
+#grip .chev { transform: rotate(90deg); }
+#curtain.open #grip .chev { transform: rotate(-90deg); }
+/* Sol ve sağ: dosyalar ve sayfa şeridi */
+.sgrip { top: 50%; width: 44px; height: 92px; margin-top: -46px; }
+.sgrip::before { width: 26px; height: 64px; }
+.side.left .sgrip { left: calc(100% + 10px + var(--sa-l)); }
+.side.right .sgrip { right: calc(100% + 10px + var(--sa-r)); }
+.side.left.open .sgrip { left: calc(100% + 6px); }
+.side.right.open .sgrip { right: calc(100% + 6px); }
+.side.right .sgrip .chev, .side.left.open .sgrip .chev { transform: rotate(180deg); }
+.side.right.open .sgrip .chev { transform: none; }
+/* Alt: ayarlar */
+.sheet .sgrip { top: auto; left: 50%; bottom: calc(100% + 12px + var(--sa-b)); width: 96px; height: 44px; margin: 0 0 0 -48px; }
+.sheet.open .sgrip { bottom: calc(100% + 6px); }
+.sheet .sgrip::before { width: 64px; height: 26px; }
+.sheet .sgrip .chev { transform: rotate(-90deg); }
+.sheet.open .sgrip .chev { transform: rotate(90deg); }
 .side-search { padding: 0 16px 8px; flex: none; }
 .side-search input { width: 100%; font: inherit; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--ground); color: var(--fg); outline: none; }
 .side-search input:focus { border-color: var(--accent); }
@@ -430,7 +456,7 @@ html, body { overscroll-behavior: none; }
     </div>
   </header>
   <nav id="toc" aria-label="İçindekiler" hidden></nav>
-  <button id="grip" type="button" aria-label="Araçları aç veya kapat" title="Araçlar (T)"></button></div>
+  <button id="grip" type="button" aria-label="Araçları aç veya kapat" title="Araçlar (T)"><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button></div>
 
   <aside id="recent" class="side left" aria-label="Klasörlerim ve son açılanlar">
     <div class="side-h"><b>Dosyalar</b><button class="btn" id="btnOpen2" type="button" title="PDF aç (Ctrl+O)">PDF aç</button></div>
@@ -440,16 +466,16 @@ html, body { overscroll-behavior: none; }
     </div>
     <div class="side-search"><input type="search" id="fileFilter" placeholder="Sunum ara…" aria-label="Sunum ara" autocomplete="off" spellcheck="false"></div>
     <div class="side-list" id="recentList"></div>
-    <button class="sgrip" id="gripL" type="button" aria-label="Klasörlerim ve son açılanları aç veya kapat" title="Klasörlerim ve son açılanlar"></button>
+    <button class="sgrip" id="gripL" type="button" aria-label="Klasörlerim ve son açılanları aç veya kapat" title="Klasörlerim ve son açılanlar"><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
   </aside>
   <aside id="strip" class="side right" aria-label="Sayfalar">
     <div class="side-h"><b>Sayfalar</b><span id="stripCount"></span></div>
     <div class="side-list" id="thumbs"></div>
-    <button class="sgrip" id="gripR" type="button" aria-label="Sayfa şeridini aç veya kapat" title="Sayfalar"></button>
+    <button class="sgrip" id="gripR" type="button" aria-label="Sayfa şeridini aç veya kapat" title="Sayfalar"><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
   </aside>
 
   <aside id="settings" class="sheet" aria-label="Ayarlar">
-    <button class="sgrip" id="gripB" type="button" aria-label="Ayarları aç veya kapat" title="Ayarlar"></button>
+    <button class="sgrip" id="gripB" type="button" aria-label="Ayarları aç veya kapat" title="Ayarlar"><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
     <div class="sheet-in">
       <div class="sheet-h"><b>Ayarlar</b><span>Ne yapılabilir, ne yapılamaz</span></div>
       <div class="sheet-grid">

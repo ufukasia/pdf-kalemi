@@ -863,7 +863,7 @@ viewer.addEventListener('wheel', (e) => {
   const now = performance.now(); clearTimeout(wheelIdle); wheelIdle = setTimeout(() => { wheelAcc = 0; }, 180);
   if (now < wheelLock) return;
   wheelAcc += e.deltaMode === 1 ? e.deltaY * 30 : e.deltaY;
-  if (Math.abs(wheelAcc) >= 40) { const i = currentIndex(); slideTo(i + (wheelAcc > 0 ? 1 : -1)); wheelAcc = 0; wheelLock = now + 320; }
+  if (Math.abs(wheelAcc) >= 40) { navStep(wheelAcc > 0 ? 1 : -1); wheelAcc = 0; wheelLock = now + 320; }
 }, { passive: false });
 
 // Parmakla tek dokunuş ileri, çift dokunuş geri (tek dokunuş, çift olup olmadığı anlaşılana kadar kısa süre bekler).
@@ -871,10 +871,10 @@ let tapTimer = 0, lastTap = null;
 function fingerTap(e) {
   if (anyDrawerOpen() || !state.opts.tapNav) return;
   if (tapTimer && lastTap && e.timeStamp - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 60) {
-    clearTimeout(tapTimer); tapTimer = 0; lastTap = null; slideTo(currentIndex() - 1); return;
+    clearTimeout(tapTimer); tapTimer = 0; lastTap = null; navStep(-1); return;
   }
   lastTap = { t: e.timeStamp, x: e.clientX, y: e.clientY };
-  clearTimeout(tapTimer); tapTimer = setTimeout(() => { tapTimer = 0; lastTap = null; slideTo(currentIndex() + 1); }, 270);
+  clearTimeout(tapTimer); tapTimer = setTimeout(() => { tapTimer = 0; lastTap = null; navStep(1); }, 270);
 }
 // Slayta kısa, yumuşak bir kaydırmayla gider.
 let slideRaf = 0;
@@ -912,7 +912,15 @@ function autoScale(pvs) {
 }
 function fitWidth() {
   if (!state.pages.length) return;
-  const vr = viewer.getBoundingClientRect(); setScale(autoScale(state.pages), vr.left, vr.top); state.fit = true; goPage(currentIndex()); persistView();
+  const i = currentIndex(), vr = viewer.getBoundingClientRect(); setScale(autoScale(state.pages), vr.left, vr.top); state.fit = true; goPage(i); persistView();
+}
+// Sunumda ileri/geri: sayfa tam genişlikte değilse (büyütülmüş ya da küçültülmüşse) ilk basış önce o sayfayı
+// tam genişliğe getirir; sonraki basışlar sayfa değiştirir. Klavye, sunum kumandası, parmak ve tekerlek bunu kullanır.
+function notFit() { return state.pages.length && Math.abs(state.scale - autoScale(state.pages)) > 0.002; }
+function navStep(d) {
+  if (!state.pages.length) return;
+  if (notFit()) { fitWidth(); return; }
+  state.paged ? slideTo(currentIndex() + d) : d > 0 ? nextPage() : prevPage();
 }
 function updateGap() {
   const vh = viewer.clientHeight, vw = viewer.clientWidth, s = state.scale, P = state.pages;
@@ -1030,7 +1038,7 @@ function closeCurtain() { hideToc(); if (state.pinBar) return; curtain.classList
 function toggleCurtain() { curtain.classList.contains('open') ? closeCurtain() : openCurtain(); }
 let pull = null;
 grip.addEventListener('pointerdown', (e) => {
-  e.preventDefault(); grip.setPointerCapture(e.pointerId);
+  e.preventDefault(); try { grip.setPointerCapture(e.pointerId); } catch (err) {}
   const H = curtainH(), open = curtain.classList.contains('open');
   pull = { id: e.pointerId, y0: e.clientY, base: open ? 0 : -H, H, moved: false, last: 0, y: open ? 0 : -H };
   curtain.classList.add('drag');
@@ -1548,8 +1556,8 @@ window.addEventListener('keydown', (e) => {
   const tag = (e.target && e.target.tagName) || ''; if (tag === 'INPUT' && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
   const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
   if (!mod && !e.altKey) {
-    if (e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === ' ' && state.paged)) { e.preventDefault(); state.paged ? slideTo(currentIndex() + 1) : nextPage(); return; }
-    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); state.paged ? slideTo(currentIndex() - 1) : prevPage(); return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === ' ' && (state.paged || notFit()))) { e.preventDefault(); navStep(1); return; }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); navStep(-1); return; }
     if (e.key === 'Home') { e.preventDefault(); goPage(0); return; }
     if (e.key === 'End') { e.preventDefault(); goPage(state.pages.length - 1); return; }
     if (e.key === 'ArrowDown') { e.preventDefault(); viewer.scrollTop += 90; return; }
