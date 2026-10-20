@@ -97,37 +97,59 @@ const PASTE = {
 const BROWSERS = ['msedge', 'chrome', 'firefox', 'brave', 'opera', 'vivaldi', 'arc', 'browser'];
 const PASTE_PS = `
 Add-Type @"
-using System; using System.Runtime.InteropServices; using System.Text;
+using System; using System.Runtime.InteropServices; using System.Text; using System.Diagnostics; using System.Text.RegularExpressions;
 public static class PkW {
+  public delegate bool CB(IntPtr h, IntPtr l);
+  [DllImport("user32.dll")] public static extern bool EnumWindows(CB cb, IntPtr l);
+  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
   [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr h);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
   [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
+  [DllImport("user32.dll")] public static extern IntPtr SetActiveWindow(IntPtr h);
+  [DllImport("user32.dll")] public static extern IntPtr SetFocus(IntPtr h);
   [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
   [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool attach);
   [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
   [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+  public static string Title(IntPtr h) { var sb = new StringBuilder(512); GetWindowText(h, sb, 512); return sb.ToString(); }
+  // Görünür üst düzey pencereler arasında, süreç adı listede ve başlığı (büyük/küçük harfe duyarlı) uyan ilk pencere.
+  // Tarayıcının birden çok penceresi olsa da hepsine bakılır.
+  public static IntPtr Find(string[] procs, string rx) {
+    IntPtr found = IntPtr.Zero; var re = new Regex(rx);
+    EnumWindows((h, l) => {
+      if (!IsWindowVisible(h)) return true;
+      string t = Title(h); if (t.Length == 0 || !re.IsMatch(t)) return true;
+      uint pid; GetWindowThreadProcessId(h, out pid); string n = "";
+      try { n = Process.GetProcessById((int)pid).ProcessName.ToLowerInvariant(); } catch { }
+      if (Array.IndexOf(procs, n) >= 0) { found = h; return false; }
+      return true;
+    }, IntPtr.Zero);
+    return found;
+  }
 }
 "@
-$procs = $env:PK_PROCS -split ','; $rx = $env:PK_TITLE; $end = [DateTime]::Now.AddMilliseconds([int]$env:PK_TIMEOUT)
-function Title($h) { $sb = New-Object System.Text.StringBuilder 512; [void][PkW]::GetWindowText($h, $sb, 512); $sb.ToString() }
-# Hedef: listedeki süreçlerden başlığı uyan ana pencere
-function Find { foreach ($n in $procs) { foreach ($p in (Get-Process -Name $n -ErrorAction SilentlyContinue)) {
-  if ($p.MainWindowHandle -ne [IntPtr]::Zero -and $p.MainWindowTitle -match $rx) { return $p.MainWindowHandle } } }; return [IntPtr]::Zero }
-# Öne getir: Windows yalnız öndeki programa izin verdiği için öndeki pencerenin girdisine geçici olarak bağlanılır
+$procs = $env:PK_PROCS -split ','; $rx = $env:PK_TITLE
+# Yalnızca bak: hedef pencere şu an var mı?
+if ($env:PK_ONLYFIND) { if ([PkW]::Find($procs, $rx) -ne [IntPtr]::Zero) { 'VAR' } else { 'YOK' }; exit 0 }
+$end = [DateTime]::Now.AddMilliseconds([int]$env:PK_TIMEOUT)
+# Öne getir ve klavye odağını ver: Windows yalnız öndeki programa izin verdiği için hem öndeki pencerenin hem de
+# hedef pencerenin girdisine geçici olarak bağlanılır. Tarayıcılar ancak böyle odağı sayfanın içine (yazma kutusuna) verir.
 function Front($h) {
   if ([PkW]::IsIconic($h)) { [void][PkW]::ShowWindow($h, 9) }
-  $x = 0; $fg = [PkW]::GetForegroundWindow(); $ft = [PkW]::GetWindowThreadProcessId($fg, [ref]$x); $me = [PkW]::GetCurrentThreadId()
-  [void][PkW]::AttachThreadInput($me, $ft, $true); [void][PkW]::BringWindowToTop($h); [void][PkW]::SetForegroundWindow($h); [void][PkW]::AttachThreadInput($me, $ft, $false) }
+  $x = 0; $fg = [PkW]::GetForegroundWindow(); $ft = [PkW]::GetWindowThreadProcessId($fg, [ref]$x); $tt = [PkW]::GetWindowThreadProcessId($h, [ref]$x); $me = [PkW]::GetCurrentThreadId()
+  [void][PkW]::AttachThreadInput($me, $ft, $true); [void][PkW]::AttachThreadInput($me, $tt, $true)
+  [void][PkW]::BringWindowToTop($h); [void][PkW]::SetForegroundWindow($h); [void][PkW]::SetActiveWindow($h); [void][PkW]::SetFocus($h)
+  [void][PkW]::AttachThreadInput($me, $tt, $false); [void][PkW]::AttachThreadInput($me, $ft, $false) }
 while ([DateTime]::Now -lt $end) {
-  $h = Find
+  $h = [PkW]::Find($procs, $rx)
   if ($h -ne [IntPtr]::Zero) {
     if ([PkW]::GetForegroundWindow() -ne $h) { Front $h; Start-Sleep -Milliseconds 300 }
     if ([PkW]::GetForegroundWindow() -eq $h) {
       Start-Sleep -Milliseconds ([int]$env:PK_SETTLE)
-      if ([PkW]::GetForegroundWindow() -eq $h -and (Title $h) -match $rx) {
+      if ([PkW]::GetForegroundWindow() -eq $h -and (([PkW]::Title($h)) -cmatch $rx)) {
         [PkW]::keybd_event(0x11, 0, 0, [UIntPtr]::Zero); [PkW]::keybd_event(0x56, 0, 0, [UIntPtr]::Zero)
         [PkW]::keybd_event(0x56, 0, 2, [UIntPtr]::Zero); [PkW]::keybd_event(0x11, 0, 2, [UIntPtr]::Zero)
         'YAPISTIRILDI'; exit 0
@@ -137,23 +159,34 @@ while ([DateTime]::Now -lt $end) {
   Start-Sleep -Milliseconds 250
 }
 'ZAMAN_ASIMI'`;
-function autoPaste(key, via) {
-  const p = PASTE[key]; if (!p || process.platform !== 'win32') return Promise.resolve(false);
-  const env = Object.assign({}, process.env, {
-    PK_PROCS: (via === 'app' ? p.app : BROWSERS).join(','), PK_TITLE: p.title,
-    PK_TIMEOUT: '25000', PK_SETTLE: via === 'app' ? '1500' : '1800'
-  });
+function runPastePs(extra, timeout) {
   return new Promise((resolve) => {
-    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', PASTE_PS], { env, windowsHide: true, timeout: 40000 },
-      (err, out) => resolve(/YAPISTIRILDI/.test(String(out || ''))));
+    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', PASTE_PS], { env: Object.assign({}, process.env, extra), windowsHide: true, timeout },
+      (err, out) => resolve(String(out || '')));
   });
 }
+// Sitesi tarayıcıda zaten açık ve önde duran sekme mi? (Öyleyse yeni sekme açılmaz, o sekmeye yapıştırılır.)
+async function webWindowOpen(key) {
+  const p = PASTE[key]; if (!p || process.platform !== 'win32') return false;
+  return /VAR/.test(await runPastePs({ PK_PROCS: BROWSERS.join(','), PK_TITLE: p.title, PK_ONLYFIND: '1' }, 15000));
+}
+// Bekleme süreleri: uygulama kısa sürede hazırdır; yeni açılan sitenin yazma kutusu birkaç saniyede hazırlanır;
+// zaten açık olan sekmede yalnızca pencerenin öne gelmesi beklenir.
+async function autoPaste(key, via, reused) {
+  const p = PASTE[key]; if (!p || process.platform !== 'win32') return false;
+  const out = await runPastePs({
+    PK_PROCS: (via === 'app' ? p.app : BROWSERS).join(','), PK_TITLE: p.title, PK_TIMEOUT: '30000',
+    PK_SETTLE: via === 'app' ? '1500' : reused ? '700' : '3500'
+  }, 45000);
+  return /YAPISTIRILDI/.test(out);
+}
 ipcMain.handle('ai-handoff', async (_e, dataUrl, key, where, paste) => {
-  const r = await handoff(dataUrl, key, where);
-  if (r.ok && r.opened && paste !== false && PASTE[key]) r.pasted = await autoPaste(key, r.via);
+  const usePaste = paste !== false && !!PASTE[key];
+  const r = await handoff(dataUrl, key, where, usePaste);
+  if (r.ok && r.opened && usePaste) r.pasted = await autoPaste(key, r.via, r.reused);
   return r;
 });
-async function handoff(dataUrl, key, where) {
+async function handoff(dataUrl, key, where, usePaste) {
   const t = AI_TARGETS[key]; if (!t) return { ok: false };
   const img = typeof dataUrl === 'string' && dataUrl.startsWith('data:image/') ? nativeImage.createFromDataURL(dataUrl) : null;
   if (!img || img.isEmpty()) return { ok: false };
@@ -166,7 +199,10 @@ async function handoff(dataUrl, key, where) {
     if (wantApp && t.proto && app.getApplicationNameForProtocol(t.proto.split(':')[0] + '://')) { await shell.openExternal(t.proto); return { ok: true, opened: true, via: 'app' }; }
     const a = wantApp ? await findAiApp(key) : null;
     if (a) { spawn('explorer.exe', ['shell:AppsFolder\\' + a.AppID], { detached: true, stdio: 'ignore', windowsHide: true }).unref(); return { ok: true, opened: true, via: 'app', name: a.Name }; }
-    if (t.url) { await shell.openExternal(t.url); return { ok: true, opened: true, via: 'web' }; }
+    if (t.url) {
+      if (usePaste && await webWindowOpen(key)) return { ok: true, opened: true, via: 'web', reused: true };
+      await shell.openExternal(t.url); return { ok: true, opened: true, via: 'web' };
+    }
     return { ok: true, opened: false, reason: 'noapp' };
   } catch (err) { return { ok: true, opened: false }; }
 }
