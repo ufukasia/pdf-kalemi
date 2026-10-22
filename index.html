@@ -242,6 +242,23 @@ body.pinned #curtain.open #bar { box-shadow: none; border-bottom: 1px solid var(
 .aktardesk #rowClWhere:not([hidden]) { display: flex; }
 #rowClPaste { display: none; }
 .aktardesk #rowClPaste:not([hidden]) { display: flex; }
+/* Kuzey Yıldızı kartı: sunumdan bağımsız, ekranda sabit; üst ortada sarı, çevresi gökkuşağı yıldız */
+#nstar { position: fixed; z-index: 8; display: flex; flex-direction: column; background: #fffdf4; color: #1d1d1f; border-radius: 18px; border: 2px solid #ffd60a;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .38), 0 0 0 4px rgba(255, 214, 10, .18); touch-action: none; }
+#nstar[hidden] { display: none; }
+#nstar.moving, #nstar.sizing { box-shadow: 0 16px 44px rgba(0, 0, 0, .45), 0 0 0 4px rgba(255, 214, 10, .35); }
+#nsStarIcon { position: absolute; left: 50%; top: -34px; width: 62px; height: 62px; transform: translateX(-50%); cursor: grab; filter: drop-shadow(0 0 8px rgba(255, 214, 10, .85)) drop-shadow(0 3px 6px rgba(0, 0, 0, .3)); touch-action: none; z-index: 1; }
+#nsBar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 34px; padding: 0 6px 0 14px; cursor: grab; touch-action: none; }
+#nsBar b { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8a6d00; }
+.ns-btns { display: flex; gap: 2px; margin-left: 40px; }
+.ns-btns button { width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: #6b5a10; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.ns-btns button:hover:not(:disabled) { background: rgba(255, 214, 10, .25); }
+.ns-btns button:disabled { opacity: .35; cursor: default; }
+.ns-btns svg, #nsSize svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#nsInk { flex: 1; width: 100%; min-height: 0; display: block; cursor: crosshair; touch-action: none; border-top: 1px dashed rgba(138, 109, 0, .25); border-radius: 0 0 16px 16px; }
+#nsSize { position: absolute; right: -4px; bottom: -4px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; color: #8a6d00; cursor: nwse-resize; touch-action: none; }
+#btnStar .nsTb { width: 24px; height: 24px; }
+#btnStar[aria-pressed="true"] { background: var(--accent-soft); }
 #aiPanel { position: fixed; z-index: 10; display: flex; flex-direction: column; background: var(--bar); color: var(--fg); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 14px 44px rgba(0, 0, 0, .35); overflow: hidden; }
 #aiPanel[hidden] { display: none; }
 #aiPanel header { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 14px; border-bottom: 1px solid var(--line); flex: none; }
@@ -439,6 +456,7 @@ html, body { overscroll-behavior: none; }
     </div>
 
     <div class="grp">
+      <button class="iconbtn" id="btnStar" type="button" aria-pressed="false" title="Kuzey Yıldızı (N): sayfalardan bağımsız, ekranda sabit formül/not kartı" aria-label="Kuzey Yıldızı kartını aç veya kapat"><svg class="nsTb" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="nsTbRb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff2d55"/><stop offset=".2" stop-color="#ff9f0a"/><stop offset=".4" stop-color="#ffd60a"/><stop offset=".6" stop-color="#30d158"/><stop offset=".8" stop-color="#0ac8ff"/><stop offset="1" stop-color="#bf5af2"/><animateTransform attributeName="gradientTransform" type="rotate" from="0 .5 .5" to="360 .5 .5" dur="3s" repeatCount="indefinite"/></linearGradient></defs><path d="M32 5l8 17.2 18.8 2.2-13.9 12.9 3.7 18.6L32 46.6 15.4 55.9l3.7-18.6L5.2 24.4 24 22.2z" fill="#ffd60a" stroke="url(#nsTbRb)" stroke-width="5" stroke-linejoin="round"/></svg></button>
       <button class="iconbtn" id="btnUndo" type="button" title="Geri al (Ctrl+Z)" disabled><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
       <button class="iconbtn" id="btnRedo" type="button" title="İleri al (Ctrl+Y)" disabled><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
     </div>
@@ -490,6 +508,7 @@ html, body { overscroll-behavior: none; }
         </section>
         <section><h3>Sunum</h3>
           <label class="opt"><span><b>Tekerlek ve touchpad slayt slayt</b><small>Fare tekerleği veya touchpad'in bir hamlesi bir slayt ilerletir.</small></span><input type="checkbox" class="switch" id="optWheel"></label>
+          <label class="opt"><span><b>Kuzey Yıldızı kartı</b><small>Sayfalar değişse de ekranda sabit duran formül/not kartı. Kalemle yaz, köşesinden büyüt, parmakla taşı. Kısayol: N</small></span><input type="checkbox" class="switch" id="optStar"></label>
           <label class="opt"><span><b>PDF bağlantıları</b><small>Bölüm, içindekiler ve gezinme düğmelerine dokununca o sayfaya git.</small></span><input type="checkbox" class="switch" id="optLinks"></label>
         </section>
         <section><h3>Kalem</h3>
@@ -574,6 +593,18 @@ html, body { overscroll-behavior: none; }
   <svg class="i-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
   <span class="lbl" aria-hidden="true"></span>
 </button>
+<section id="nstar" aria-label="Kuzey Yıldızı" hidden>
+  <svg id="nsStarIcon" class="nsBig" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="nsBigRb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff2d55"/><stop offset=".2" stop-color="#ff9f0a"/><stop offset=".4" stop-color="#ffd60a"/><stop offset=".6" stop-color="#30d158"/><stop offset=".8" stop-color="#0ac8ff"/><stop offset="1" stop-color="#bf5af2"/><animateTransform attributeName="gradientTransform" type="rotate" from="0 .5 .5" to="360 .5 .5" dur="3s" repeatCount="indefinite"/></linearGradient></defs><path d="M32 5l8 17.2 18.8 2.2-13.9 12.9 3.7 18.6L32 46.6 15.4 55.9l3.7-18.6L5.2 24.4 24 22.2z" fill="#ffd60a" stroke="url(#nsBigRb)" stroke-width="5" stroke-linejoin="round"/></svg>
+  <div id="nsBar"><b>Kuzey Yıldızı</b>
+    <span class="ns-btns">
+      <button id="nsUndo" type="button" title="Geri al" aria-label="Kartta geri al" disabled><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+      <button id="nsClear" type="button" title="Temizle (geri alınabilir)" aria-label="Kartı temizle" disabled><svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg></button>
+      <button id="nsClose" type="button" title="Gizle (N)" aria-label="Kartı gizle"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </span>
+  </div>
+  <canvas id="nsInk"></canvas>
+  <div id="nsSize" title="Büyüt / küçült" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 10L10 20M20 15l-5 5M20 4L4 20"/></svg></div>
+</section>
 <section id="aiPanel" data-state="idle" aria-label="Yapay zeka asistanı" hidden>
   <header><b>Asistan</b><span id="aiStatus"></span>
     <button id="aiClear" type="button" title="Konuşmayı temizle" aria-label="Konuşmayı temizle"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg></button>

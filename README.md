@@ -58,6 +58,7 @@ PDF Kalemi, ders slaytlarını ve PDF belgelerini **Surface Pen ile kâğıda ya
 - **Baskıya duyarlı, uçları sivrilen mürekkep.** Çizgiler pürüzsüz eğrilerle çizilir.
 - **Uç tipleri:** tükenmez, dolma kalem, fırça ve kaligrafi (yatık uç). Baskı hassasiyeti ayarlanabilir.
 - Fosforlu kalem, düz çizgi, ok, dikdörtgen, elips ve silgi.
+- **Gökkuşağı rengi:** renkleri sayfa üzerinde sürekli akan, hareketli kalem rengi (kalem, fosforlu kalem ve şekiller için). PDF'e renk renk kaydedilir.
 - **Neon lazer kalemi:** sunumda parlayıp birkaç saniyede kaybolan iz.
 - **Düşük gecikme:** `pointerrawupdate` ve senkronsuz çizim yüzeyleri sayesinde mürekkep kalemin ucundan geri kalmaz.
 - Kalemin yan tuşu Ayarlar'dan silgi olarak da kullanılabilir. Bütün işlemler geri alınabilir.
@@ -67,6 +68,12 @@ PDF Kalemi, ders slaytlarını ve PDF belgelerini **Surface Pen ile kâğıda ya
 - **İleri/geri:** parmakla tek/çift dokunuş, klavye oklarıyla, sunum kumandasıyla (PageUp/PageDown) ya da fare tekerleğiyle. Sayfa büyütülmüşse ilk basış önce sayfayı tam genişliğe getirir.
 - PDF içindeki **bağlantılar ve içindekiler** doğru sayfaya götürür; `Alt+←` ile geri dönülür.
 - Sağdaki **film şeridi** bütün sunumu küçük resimlerle gösterir.
+
+### ⭐ Kuzey Yıldızı kartı
+- Derste öğrencilerin aklında kalması gereken formül ya da not için, **sayfalardan bağımsız, ekranda sabit duran** bir kart. Slayt değişse, sayfa yakınlaştırılsa da yerinde kalır.
+- Üst ortasında sarı, çevresi gökkuşağı renkli bir yıldız vardır. Üzerine kalemle yazılır (gökkuşağı rengi dahil), kalemin arka ucuyla silinir.
+- Sağ alt köşesinden büyütülüp küçültülür; yazı kartla birlikte büyür. Parmakla ya da üst şeridinden tutularak taşınır.
+- Araç çubuğundaki ⭐ düğmesi, `N` kısayolu ya da Ayarlar → Sunum ile açılıp kapanır. İçeriği her PDF için ayrı saklanır.
 
 ### 🗂️ Dosyalar ve klasörler
 - Sol menüde iki sekme: **Klasörlerim** ve **Son açılanlar**. Klasörlere istediğiniz adı verebilirsiniz; içlerindeki PDF'ler alt klasörlerle birlikte listelenir ve aranabilir.
@@ -116,6 +123,7 @@ Ayarlar → Ses bölümünden seçilir; her servisin yanında "API anahtarı ned
 | `1` `2` `3` `4` | Uç: tükenmez, dolma kalem, fırça, kaligrafi |
 | `Y` / `C` | Sesli asistan / yapay zekâya aktar |
 | `T` | Üst araç çubuğunu aç/kapat |
+| `N` | Kuzey Yıldızı kartını aç/kapat |
 | `→` `PageDown` `Boşluk` / `←` `PageUp` | Sonraki / önceki sayfa |
 | `Home` / `End` / `G` | İlk sayfa / son sayfa / sayfaya git |
 | `Alt+←` / `Alt+→` | Bağlantıdan geri / ileri |
