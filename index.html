@@ -82,6 +82,10 @@ body {
 
 .sw { width: 26px; height: 26px; border-radius: 50%; padding: 0; position: relative; }
 .sw span { width: 19px; height: 19px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .25); display: block; }
+/* Gökkuşağı rengi düğmesi: renkler döner */
+.sw span.rb { background: conic-gradient(#ff2d55, #ff9f0a, #ffd60a, #30d158, #0ac8ff, #5e5ce6, #bf5af2, #ff2d55); animation: rbspin 3s linear infinite; }
+@keyframes rbspin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .sw span.rb { animation-duration: 12s; } }
 .sw[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--bar), 0 0 0 4px var(--accent); }
 #colors.off { opacity: .3; pointer-events: none; }
 

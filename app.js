@@ -7,7 +7,7 @@ const PAD = 24, GAP = 28;
 const MIN_SCALE = 0.2, MAX_SCALE = 6;
 const SWATCHES = [
   ['#16181d', 'Siyah'], ['#d6322b', 'Kırmızı'], ['#1f6feb', 'Mavi'], ['#1a7f4b', 'Yeşil'],
-  ['#f08c00', 'Turuncu'], ['#8250df', 'Mor'], ['#ffd400', 'Sarı']
+  ['#f08c00', 'Turuncu'], ['#8250df', 'Mor'], ['#ffd400', 'Sarı'], ['rainbow', 'Gökkuşağı: renkler sürekli akar']
 ];
 const TOOLS = {
   pen:     { ck: 'pen',   sk: 'pen',    min: 0.5, max: 12, step: 0.5, label: 'Kalınlık' },
@@ -229,8 +229,23 @@ function drawShape(ctx, o) {
   }
   ctx.stroke();
 }
+/* ---------- Gökkuşağı rengi: renkler sayfa üzerinde çapraz olarak sürekli akar ---------- */
+const RAINBOW = 'rainbow';
+const RB_PERIOD = 220;   // bir tam renk döngüsünün sayfa üzerindeki uzunluğu (sayfa birimi)
+const RB_SPEED = 3500;   // bir döngünün kayma süresi (ms)
+const RB_SPAN = 4200;    // gradyanın kapladığı uzunluk: en büyük sayfaları da örter
+let rbPhase = 0;         // 0..1, zamanla artar
+const rbHue = (x, y, ph) => ((((x + y) / Math.SQRT2 / RB_PERIOD + (ph || 0)) % 1) + 1) % 1 * 360;
+function rainbowStyle(ctx) {
+  const off = rbPhase * RB_PERIOD, u = Math.SQRT1_2;
+  const g = ctx.createLinearGradient(-off * u, -off * u, (RB_SPAN - off) * u, (RB_SPAN - off) * u);
+  const n = Math.ceil(RB_SPAN / RB_PERIOD * 6);
+  for (let i = 0; i <= n; i++) g.addColorStop(i / n, 'hsl(' + ((i * 60) % 360) + ', 95%, 52%)');
+  return g;
+}
 function setStyle(ctx, o) {
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = o.c; ctx.fillStyle = o.c;
+  const c = o.c === RAINBOW ? (ctx.__mask ? '#000' : rainbowStyle(ctx)) : o.c;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = c; ctx.fillStyle = c;
 }
 function drawObj(ctx, o) {
   ctx.save(); setStyle(ctx, o);
@@ -302,7 +317,7 @@ class PageView {
     if (!this.active) return; if (sel && sel.pv === this) clearSel(); this.active = false; this.token++;
     if (this.task) { try { this.task.cancel(); } catch (e) {} this.task = null; }
     if (this.pdfCanvas) { this.pdfCanvas.remove(); this.pdfCanvas.width = 0; this.pdfCanvas = null; }
-    this.ink.remove(); this.ink.width = 0; this.ctx = null;
+    this.ink.remove(); this.ink.width = 0; this.ctx = null; this.dropRainbow();
     if (!cur && ov.cv.parentNode === this.el) detachOverlay();
   }
   refresh() {
@@ -325,9 +340,49 @@ class PageView {
     if (!this.ctx) return;
     const c = this.ctx; c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, this.ink.width, this.ink.height);
     c.setTransform(this.k, 0, 0, this.k, 0, 0);
-    for (const o of this.objs) drawObj(c, o);
+    let rb = 0;
+    for (const o of this.objs) { if (o.c === RAINBOW) rb++; else drawObj(c, o); }
+    if (rb) this.drawRainbowMask(); else this.dropRainbow();
+  }
+  // Gökkuşağı çizgileri ayrı bir katmandadır: şekilleri bir kez maskeye çizilir, her karede yalnızca
+  // akan renkler maskenin içine boyanır (çizgilerin geometrisi her karede yeniden hesaplanmaz).
+  drawRainbowMask() {
+    const W = this.ink.width, H = this.ink.height;
+    if (!this.rb) { this.rb = document.createElement('canvas'); this.rb.className = 'ink rb'; this.rbMask = document.createElement('canvas'); }
+    if (this.rb.previousSibling !== this.ink) this.ink.after(this.rb);
+    if (this.rb.width !== W || this.rb.height !== H) { this.rb.width = this.rbMask.width = W; this.rb.height = this.rbMask.height = H; }
+    const m = this.rbMask.getContext('2d'); m.__mask = true;
+    m.setTransform(1, 0, 0, 1, 0, 0); m.clearRect(0, 0, W, H); m.setTransform(this.k, 0, 0, this.k, 0, 0);
+    for (const o of this.objs) if (o.c === RAINBOW) drawObj(m, o);
+    this.hasRb = true; paintRainbow(this); rainbowLoop();
+  }
+  dropRainbow() {
+    this.hasRb = false;
+    if (this.rb) { this.rb.remove(); this.rb.width = this.rbMask.width = 0; this.rb = this.rbMask = null; }
   }
 }
+
+function paintRainbow(pv) {
+  const c = pv.rb.getContext('2d'), W = pv.rb.width, H = pv.rb.height;
+  c.globalCompositeOperation = 'source-over'; c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, W, H);
+  c.setTransform(pv.k, 0, 0, pv.k, 0, 0); c.fillStyle = rainbowStyle(c); c.fillRect(0, 0, pv.w, pv.h);
+  c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'destination-in'; c.drawImage(pv.rbMask, 0, 0);
+  c.globalCompositeOperation = 'source-over';
+}
+// Yalnızca gökkuşağı çizgisi olan, ekranda hazırlanmış sayfalar için çalışır; saniyede ~30 kare; arka planda durur.
+let rbRaf = 0, rbLast = 0;
+function rainbowLoop() {
+  if (rbRaf) return;
+  const tick = (now) => {
+    rbRaf = 0;
+    const pvs = state.pages.filter((p) => p.active && p.hasRb && p.rb);
+    if (!pvs.length) return;
+    if (!document.hidden && now - rbLast >= 33) { rbLast = now; rbPhase = (now / RB_SPEED) % 1; for (const p of pvs) paintRainbow(p); }
+    rbRaf = requestAnimationFrame(tick);
+  };
+  rbRaf = requestAnimationFrame(tick);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) rainbowLoop(); });
 
 /* ---------- Canlı çizim katmanı (düşük gecikme) ---------- */
 const ov = { cv: document.createElement('canvas'), pr: document.createElement('canvas'), cx: null, px: null, owner: null };
@@ -827,7 +882,7 @@ function endStroke(e, cancel) {
     const last = o.pts[o.pts.length - 1];
     if (c.rawPt && Math.hypot(c.rawPt[0] - last[0], c.rawPt[1] - last[1]) > 0.05) o.pts.push([c.rawPt[0], c.rawPt[1], last[2]]);
     o.bb = bboxOf(o); c.pv.objs.push(o);
-    if (c.pv.ctx) drawObj(c.pv.ctx, o);
+    if (c.pv.ctx) { if (o.c === RAINBOW) c.pv.drawInk(); else drawObj(c.pv.ctx, o); }
     scheduleOvClear();
     pushAction({ k: 'add', pv: c.pv, o });
     return;
@@ -836,7 +891,7 @@ function endStroke(e, cancel) {
   if (!o.pts) { const dx = o.b[0] - o.a[0], dy = o.b[1] - o.a[1]; if (Math.hypot(dx, dy) < 2) { if (c.dirty) clearBB(ov.cx, c.dirty); return; } }
   o.bb = bboxOf(o);
   c.pv.objs.push(o);
-  if (c.pv.ctx) drawObj(c.pv.ctx, o);
+  if (c.pv.ctx) { if (o.c === RAINBOW) c.pv.drawInk(); else drawObj(c.pv.ctx, o); }
   if (c.dirty) clearBB(ov.cx, unionBB(c.dirty, o.bb));
   pushAction({ k: 'add', pv: c.pv, o });
 }
@@ -1450,6 +1505,9 @@ function confirmDiscard() { return Promise.resolve(true); }
 
 /* ---------- PDF'e kaydet ---------- */
 function toPdfPts(pv, pts) { return pts.map((p) => { const q = pv.vp.convertToPdfPoint(p[0], p[1]); return [q[0], q[1]]; }); }
+// PDF'te renk hareket edemez: gökkuşağı çizgileri ekrandaki gibi konuma göre renk renk kaydedilir.
+function hslRgb(h) { const f = (n) => { const k = (n + h / 30) % 12, a = 0.95 * Math.min(0.52, 0.48); return 0.52 - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); }; return PDFLib.rgb(f(0), f(8), f(4)); }
+const rbRgb = (x, y) => hslRgb(rbHue(x, y, 0));
 function hexRgb(h) { const n = parseInt(h.slice(1), 16); return PDFLib.rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); }
 function svgOf(P, closed) { return 'M ' + P.map((p) => p[0].toFixed(2) + ' ' + (-p[1]).toFixed(2)).join(' L ') + (closed ? ' Z' : ''); }
 function quadSamples(pts, i) {
@@ -1467,21 +1525,32 @@ async function buildPdf() {
   for (const pv of state.pages) {
     if (!pv.objs.length) continue; const page = list[pv.i];
     for (const o of pv.objs) {
-      const color = hexRgb(o.c);
+      const rb = o.c === RAINBOW;
+      const at = rb ? (q) => rbRgb(q[0], q[1]) : null;
+      const color = rb ? at(o.pts ? o.pts[0] : midOf(o)) : hexRgb(o.c);
       if (o.t === 'pen' && o.k) {
-        const S = samplesOf(o, clamp(o.w * 0.5, 0.5, 1.6)), parts = [];
+        const S = samplesOf(o, clamp(o.w * 0.5, 0.5, 1.6)), L = S[S.length - 1][3], last = S.length - 1;
         const T = (x, y) => { const q = pv.vp.convertToPdfPoint(x, y); return q[0].toFixed(1) + ' ' + (-q[1]).toFixed(1); };
-        nibGeom(o, S, 0, S.length - 1, S[S.length - 1][3], true, {
-          eps: 0.04,
-          poly(P) { parts.push('M ' + P.map((p) => T(p[0], p[1])).join(' L ') + ' Z'); },
-          circle(x, y, r) { const k = 0.5523 * r; parts.push(`M ${T(x + r, y)} C ${T(x + r, y + k)} ${T(x + k, y + r)} ${T(x, y + r)} C ${T(x - k, y + r)} ${T(x - r, y + k)} ${T(x - r, y)} C ${T(x - r, y - k)} ${T(x - k, y - r)} ${T(x, y - r)} C ${T(x + k, y - r)} ${T(x + r, y - k)} ${T(x + r, y)} Z`); }
-        });
-        page.drawSvgPath(parts.join(' '), { x: 0, y: 0, color });
+        const piece = (from, to) => {
+          const parts = [];
+          nibGeom(o, S, from, to, L, to === last, {
+            eps: 0.04,
+            poly(P) { parts.push('M ' + P.map((p) => T(p[0], p[1])).join(' L ') + ' Z'); },
+            circle(x, y, r) { const k = 0.5523 * r; parts.push(`M ${T(x + r, y)} C ${T(x + r, y + k)} ${T(x + k, y + r)} ${T(x, y + r)} C ${T(x - k, y + r)} ${T(x - r, y + k)} ${T(x - r, y)} C ${T(x - r, y - k)} ${T(x - k, y - r)} ${T(x, y - r)} C ${T(x + k, y - r)} ${T(x + r, y - k)} ${T(x + r, y)} Z`); }
+          });
+          return parts.join(' ');
+        };
+        if (!rb) page.drawSvgPath(piece(0, last), { x: 0, y: 0, color });
+        else for (let a = 0; a < last || a === 0; ) { // gökkuşağı: ~8 birimlik parçalar, her biri kendi renginde
+          let b = a + 1; while (b < last && S[b][3] - S[a][3] < 8) b++; b = Math.min(b, last);
+          const m = S[(a + b) >> 1]; page.drawSvgPath(piece(a, b), { x: 0, y: 0, color: at(m) });
+          if (b >= last) break; a = b;
+        }
       } else if (o.t === 'pen') {
         if (o.pts.length === 1) { const q = pv.vp.convertToPdfPoint(o.pts[0][0], o.pts[0][1]); page.drawCircle({ x: q[0], y: q[1], size: Math.max(0.1, o.w * o.pts[0][2] / 2), color, borderWidth: 0 }); continue; }
         for (let i = 1; i <= o.pts.length; i++) {
-          const { out, f } = quadSamples(o.pts, i), P = toPdfPts(pv, out);
-          for (let j = 1; j < P.length; j++) page.drawLine({ start: { x: P[j - 1][0], y: P[j - 1][1] }, end: { x: P[j][0], y: P[j][1] }, thickness: Math.max(0.2, o.w * f), color, lineCap: LineCapStyle.Round });
+          const { out, f } = quadSamples(o.pts, i), P = toPdfPts(pv, out), c = rb ? at(out[0]) : color;
+          for (let j = 1; j < P.length; j++) page.drawLine({ start: { x: P[j - 1][0], y: P[j - 1][1] }, end: { x: P[j][0], y: P[j][1] }, thickness: Math.max(0.2, o.w * f), color: c, lineCap: LineCapStyle.Round });
         }
       } else if (o.t === 'hl') {
         const P = toPdfPts(pv, o.pts.length === 1 ? [o.pts[0], [o.pts[0][0] + 0.01, o.pts[0][1]]] : smoothPoly(o.pts));
@@ -1517,7 +1586,7 @@ function buildColors(pal) {
   const box = $('#colors'); box.textContent = ''; shownPal = pal;
   pal.forEach(([hex, name]) => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.dataset.c = hex; b.title = name; b.setAttribute('role', 'radio'); b.setAttribute('aria-label', name);
-    b.innerHTML = '<span style="background:' + hex + (pal === NEON ? ';box-shadow:0 0 7px 1px ' + hex : '') + '"></span>';
+    b.innerHTML = hex === RAINBOW ? '<span class="rb"></span>' : '<span style="background:' + hex + (pal === NEON ? ';box-shadow:0 0 7px 1px ' + hex : '') + '"></span>';
     b.addEventListener('click', () => { const ck = TOOLS[state.tool].ck; if (!ck) return; state.colors[ck] = hex; syncUi(); });
     box.appendChild(b);
   });
