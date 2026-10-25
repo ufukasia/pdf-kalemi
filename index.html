@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="tr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'self' blob: data: https://openrouter.ai https://*.speech.microsoft.com https://api.elevenlabs.io; media-src 'self' blob: data:; manifest-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'self' blob: data: https://login.microsoftonline.com https://graph.microsoft.com https://*.sharepoint.com https://*.1drv.com https://*.svc.ms https://openrouter.ai https://*.speech.microsoft.com https://api.elevenlabs.io; media-src 'self' blob: data:; manifest-src 'self'">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <meta name="theme-color" content="#1c2027">
@@ -349,6 +349,42 @@ html, body { overscroll-behavior: none; }
 .side-tab-top { display: flex; justify-content: flex-end; margin: 0 6px 6px; }
 .side-tab-top .add { font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
 .side-tab-top .add:hover { background: var(--hover); }
+.side-tab-top { gap: 8px; }
+.side-tab-top .add.od { display: inline-flex; align-items: center; gap: 6px; }
+.side-tab-top .add.od svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+/* OneDrive klasör seçici */
+.od-back { position: fixed; inset: 0; z-index: 18; display: flex; align-items: center; justify-content: center; padding: max(16px, var(--sa-t)) max(16px, var(--sa-r)) max(16px, var(--sa-b)) max(16px, var(--sa-l)); background: rgba(0, 0, 0, .42); }
+.od-back[hidden] { display: none; }
+.od-box { width: min(560px, 100%); height: min(640px, 100%); display: flex; flex-direction: column; background: var(--bar); color: var(--fg); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 18px 50px rgba(0, 0, 0, .4); overflow: hidden; }
+.od-h { display: flex; align-items: center; gap: 10px; padding: 12px 10px 8px 18px; }
+.od-h b { font-size: 16px; }
+.od-who { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.od-x { width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: var(--fg); font-size: 24px; line-height: 1; cursor: pointer; }
+.od-x:hover { background: var(--hover); }
+.od-tabs { display: flex; gap: 6px; padding: 0 14px 8px; }
+.od-tabs button { font: inherit; font-size: 13px; font-weight: 600; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
+.od-tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.od-crumbs { display: flex; align-items: center; gap: 2px; padding: 4px 12px 8px; overflow-x: auto; white-space: nowrap; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+.od-crumbs button { font: inherit; font-size: 13px; border: 0; background: transparent; color: var(--accent); padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+.od-crumbs button[aria-current] { color: var(--fg); font-weight: 600; cursor: default; }
+.od-sep { color: var(--muted); }
+.od-list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; -webkit-overflow-scrolling: touch; }
+.od-row { width: 100%; display: grid; grid-template-columns: 28px 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; text-align: left; font: inherit; color: var(--fg); background: transparent; border: 0; border-radius: 10px; padding: 9px 10px; cursor: pointer; }
+.od-row:hover { background: var(--hover); }
+.od-row svg { grid-row: 1 / 3; width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.od-row.dir svg { color: #e2a400; fill: rgba(255, 196, 0, .25); }
+.od-row.pdf svg { color: #e5484d; }
+.od-row b { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.od-row small { color: var(--muted); font-size: 12px; }
+.od-msg { color: var(--muted); font-size: 13px; padding: 18px 12px; }
+.od-list > .btn { margin: 0 12px; }
+.od-f { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px solid var(--line); }
+.od-hint { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; }
+.od-f .btn, .od-list > .btn { width: auto; height: 36px; padding: 0 14px; }
+.od-add { flex: none; white-space: nowrap; }
+.od-add:disabled { opacity: .45; cursor: default; }
+#secOd .btn[hidden], #secOd[hidden] { display: none; }
+#odRedirect { font-size: 12px; word-break: break-all; user-select: all; }
 /* Çekmece tutamakları: ekran kenarından içeride, oklu küçük birer dil. Telefonda sistem çubuklarının ve kenar
    hareketlerinin, Windows'ta kenardan kaydırma hareketlerinin dışında kalır. Dokununca açılır/kapanır, sürüklenebilir. */
 #grip, .sgrip { position: absolute; padding: 0; border: 0; background: transparent; cursor: pointer; touch-action: none; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
@@ -567,6 +603,16 @@ html, body { overscroll-behavior: none; }
         <section><h3>Sistem</h3>
           <div class="opt" id="rowDefApp"><span><b>Varsayılan PDF uygulaması</b><small>PDF'lere çift tıklayınca PDF Kalemi ile açılsın. Windows son onayı senden ister: açılan sayfada ".pdf" için PDF Kalemi'yi seç.</small></span><button class="btn" id="btnDefApp" type="button">Ayarla</button></div>
         </section>
+        <section id="secOd"><h3>OneDrive</h3>
+          <div class="opt"><span><b>Okul hesabı</b><small id="odState"></small></span><span class="opt-ctl"><button class="btn primary" id="odLogin" type="button">Giriş yap</button><button class="btn" id="odLogout" type="button">Çıkış</button></span></div>
+          <p class="opt-note">Dosyalar → Klasörlerim → <b>+ OneDrive</b> ile OneDrive'daki ders klasörlerini ekle; telefonda ve tablette de görünürler. Dosyalar yalnızca okunur. Açılan sunumların kopyası bu cihazda saklanır, internet yokken de açılır.</p>
+          <details class="svc" id="odAdv"><summary><b>Uygulama kaydı</b><span class="svc-st" id="odCfgState"></span></summary>
+            <p>OneDrive'a bağlanmak için kurumun Microsoft Entra'sında bir "PDF Kalemi" uygulama kaydı gerekir (okulun bilgi işlemi oluşturur). Aldığın <b>Uygulama (istemci) kimliğini</b> aşağıya yapıştır. Kayıt yalnızca okul içinse Kiracı kutusuna okulun alan adını yaz (ör. ostimteknik.edu.tr).</p>
+            <div class="opt-row"><input id="odClient" autocomplete="off" spellcheck="false" placeholder="Uygulama (istemci) kimliği" aria-label="Uygulama (istemci) kimliği"><input id="odTenant" autocomplete="off" spellcheck="false" placeholder="Kiracı (boş: organizations)" aria-label="Kiracı"></div>
+            <div class="opt-row"><button class="btn primary" id="odCfgSave" type="button">Kaydet</button></div>
+            <p>Bu cihazın dönüş adresi (kayda eklenmeli): <code id="odRedirect"></code></p>
+          </details>
+        </section>
         <section><h3>Görünüm</h3>
           <div class="opt"><span><b>Tema</b><small>Kenar alanı ve menülerin rengi. Sayfalar her zaman beyaz kalır.</small></span><div class="segbtn" id="optTheme" role="group" aria-label="Tema"><button type="button" data-v="system">Sistem</button><button type="button" data-v="light">Açık</button><button type="button" data-v="dark">Koyu</button></div></div>
         </section>
@@ -617,6 +663,7 @@ html, body { overscroll-behavior: none; }
 <div id="toast" role="status"></div>
 <div id="drop">PDF'i buraya bırakın</div>
 <script src="web.js"></script>
+<script src="onedrive.js"></script>
 <script src="lib/pdf.min.js"></script>
 <script src="lib/pdf-lib.min.js"></script>
 <script src="app.js"></script>

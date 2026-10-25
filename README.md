@@ -72,11 +72,12 @@ PDF Kalemi, ders slaytlarını ve PDF belgelerini **Surface Pen ile kâğıda ya
 ### ⭐ Kuzey Yıldızı kartı
 - Derste öğrencilerin aklında kalması gereken formül ya da not için, **sayfalardan bağımsız, ekranda sabit duran** bir kart. Slayt değişse, sayfa yakınlaştırılsa da yerinde kalır.
 - Üst ortasında sarı, çevresi gökkuşağı renkli bir yıldız vardır. Üzerine kalemle yazılır (gökkuşağı rengi dahil), kalemin arka ucuyla silinir.
-- Sağ alt köşesinden büyütülüp küçültülür; yazı kartla birlikte büyür. Parmakla ya da üst şeridinden tutularak taşınır.
+- Sağ alt köşesinden büyütülüp küçültülür; **yazının boyu değişmez**, slayta yazılanla aynı büyüklükte görünür (kart büyüyünce yalnızca yazacak yer açılır). Parmakla ya da üst şeridinden tutularak taşınır.
 - Araç çubuğundaki ⭐ düğmesi, `N` kısayolu ya da Ayarlar → Sunum ile açılıp kapanır. İçeriği her PDF için ayrı saklanır.
 
 ### 🗂️ Dosyalar ve klasörler
 - Sol menüde iki sekme: **Klasörlerim** ve **Son açılanlar**. Klasörlere istediğiniz adı verebilirsiniz; içlerindeki PDF'ler alt klasörlerle birlikte listelenir ve aranabilir.
+- **OneDrive (okul hesabı):** Klasörlerim → **+ OneDrive** ile Microsoft hesabınızla giriş yapıp OneDrive'ınızdaki ya da sizinle paylaşılan klasörleri ekleyin; Android'de ve web'de de çalışır. Dosyalar yalnızca okunur; açılan sunumların kopyası cihazda saklanır, internet yokken de açılır. Kurumun Microsoft Entra'sında bir uygulama kaydı gerekir (Ayarlar → OneDrive → Uygulama kaydı).
 - Her PDF kaldığınız sayfadan açılır. Mürekkep her dosya için otomatik saklanır.
 - **PDF olarak kaydetme** vektöreldir: yazılar büyütüldüğünde bulanıklaşmaz.
 - Windows'ta PDF Kalemi **varsayılan PDF uygulaması** olabilir. Android'de dosya yöneticisinde "PDF Kalemi ile aç" seçeneği çıkar.
@@ -184,6 +185,7 @@ mobile/               Android uygulaması: Capacitor projesi, yerel eklenti, APK
 - **Bu depoda hiçbir API anahtarı yoktur.** OpenRouter, Azure ve ElevenLabs anahtarlarını her kullanıcı kendisi alır ve Ayarlar'dan girer.
 - Anahtarlar **yalnızca kendi cihazınızda** saklanır. Hiçbir sunucuya kaydedilmez, yalnızca ilgili servise doğrudan gönderilir.
 - PDF'leriniz ve mürekkebiniz cihazınızda kalır. Bulut eşitlemesi istiyorsanız dosyalarınızı OneDrive gibi bir klasörde tutabilirsiniz.
+- OneDrive bağlantısı yalnızca okuma izniyle (Files.Read.All) çalışır; oturum anahtarı yalnızca cihazınızda saklanır ve yalnızca Microsoft'a gönderilir.
 - Dışarıya giden veriler yalnızca şunlardır:
   - siz **Gönder**'e bastığınızda sayfa görüntüsü ve sorunuz → OpenRouter;
   - ses tanıma ya da seslendirme için ses veya metin → seçtiğiniz servis (Azure / ElevenLabs);

@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('desktop', {
   voiceTts: (text, rate) => ipcRenderer.invoke('voice-tts', text, rate),
   onVoiceProgress: (cb) => ipcRenderer.on('voice-progress', (_e, p) => cb(p)),
   pickFolder: () => ipcRenderer.invoke('pick-folder'),
+  odAuth: (url, redirect) => ipcRenderer.invoke('od-auth', url, redirect),
+  odHttp: (req) => ipcRenderer.invoke('od-http', req),
   listPdfs: (dir) => ipcRenderer.invoke('list-pdfs', dir),
   savePdf: (bytes, defaultPath) => ipcRenderer.invoke('save-pdf', bytes, defaultPath),
   getInitialFile: () => ipcRenderer.invoke('initial-file'),

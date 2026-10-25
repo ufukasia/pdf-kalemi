@@ -19,7 +19,7 @@ const JDK_URL = 'https://aka.ms/download-jdk/microsoft-jdk-21-windows-' + ARCH +
 const SDK_TOOLS_URL = 'https://dl.google.com/android/repository/commandlinetools-win-16111833_latest.zip';
 const SDK_PACKAGES = ['platform-tools', 'platforms;android-36', 'build-tools;35.0.0']; // Gradle eklentisi (AGP 8.13) build-tools 35 ister
 // Uygulamaya giren web dosyaları (masaüstüne özgü main/preload/voice ve servis çalışanı hariç).
-const WEB = ['index.html', 'app.js', 'web.js', 'speech.js', 'ai.js', 'aktar.js', 'manifest.webmanifest', 'ai-logo.png', 'icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable.png', 'lib'];
+const WEB = ['index.html', 'app.js', 'web.js', 'onedrive.js', 'speech.js', 'ai.js', 'aktar.js', 'manifest.webmanifest', 'ai-logo.png', 'icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable.png', 'lib'];
 
 const env = Object.assign({}, process.env, { JAVA_HOME: JDK, ANDROID_HOME: SDK, ANDROID_SDK_ROOT: SDK, Path: path.join(JDK, 'bin') + ';' + (process.env.Path || process.env.PATH || '') });
 const run = (cmd, args, cwd, extra) => execFileSync(cmd, args, Object.assign({ cwd, stdio: 'inherit', env }, extra));

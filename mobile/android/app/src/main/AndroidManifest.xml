@@ -37,6 +37,14 @@
                 <data android:mimeType="application/pdf" />
             </intent-filter>
 
+            <!-- OneDrive girişi: Microsoft giriş sayfası tarayıcıdan bu adresle uygulamaya döner -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="io.github.ufukasia.pdfkalemi" android:host="auth" />
+            </intent-filter>
+
             <!-- Başka bir uygulamadan "Paylaş → PDF Kalemi" -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

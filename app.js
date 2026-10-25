@@ -1175,10 +1175,14 @@ function ago(t) {
 }
 // Sol menü: kullanıcının eklediği klasörler ve içlerindeki PDF'ler, ayrı sekmede son açılanlar.
 const folderCache = {};
+// OneDrive'daki klasör ve dosyalar (onedrive/...) OneDrive modülünden, diğerleri cihazdan okunur.
+const OD = window.oneDrive || null;
+const srcOf = (p) => (OD && OD.owns(p) ? OD : window.desktop);
 // Dosyanın nerede olduğunu kısa ve okunur gösterir (web'deki iç yolları da).
 function placeOf(p) {
   if (p.startsWith('cihaz/')) return 'Bu cihaz';
   if (p.startsWith('klasor/')) return p.split('/').slice(2, -1).join(' / ');
+  if (OD && OD.owns(p)) return ['OneDrive'].concat(p.split('/').slice(2, -1)).join(' / ');
   const name = p.split(/[\\/]/).pop(); return p.slice(0, Math.max(0, p.length - name.length - 1));
 }
 function sideEmpty(text) { const e = document.createElement('div'); e.className = 'side-empty'; e.textContent = text; return e; }
@@ -1213,8 +1217,16 @@ function buildRecent() {
     }
   } else {
     const row = document.createElement('div'); row.className = 'side-tab-top';
-    const add = document.createElement('button'); add.type = 'button'; add.className = 'add'; add.textContent = '+ Klasör ekle'; add.addEventListener('click', addFolder);
-    row.appendChild(add); list.appendChild(row);
+    if (window.desktop.canPickFolder !== false) {
+      const add = document.createElement('button'); add.type = 'button'; add.className = 'add'; add.textContent = '+ Klasör ekle'; add.title = 'Bu cihazdaki bir klasörü ekle';
+      add.addEventListener('click', addFolder); row.appendChild(add);
+    }
+    if (OD) {
+      const od = document.createElement('button'); od.type = 'button'; od.className = 'add od'; od.title = 'OneDrive\'daki (okul hesabı) bir klasörü ekle';
+      od.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 18.5h10a3.5 3.5 0 0 0 .6-6.95A5 5 0 0 0 8.6 9.6 4.5 4.5 0 0 0 7.5 18.5z"/></svg>+ OneDrive';
+      od.addEventListener('click', addOneDrive); row.appendChild(od);
+    }
+    list.appendChild(row);
     if (!store.folders.length) list.appendChild(sideEmpty('Ders klasörlerini ekle; içlerindeki sunumlar burada listelenir.'));
     for (const dir of store.folders) list.appendChild(folderBlock(dir));
   }
@@ -1246,33 +1258,70 @@ function folderBlock(dir) {
   box.append(head, body);
   const fill = (res) => {
     body.textContent = '';
+    const od = OD && OD.owns(dir);
     if (res.missing) { cnt.textContent = 'bulunamadı'; body.appendChild(sideEmpty('Klasör bulunamadı; taşınmış veya silinmiş olabilir.')); return; }
     if (res.needsPermission) {
-      cnt.textContent = 'izin gerekli';
-      const g = document.createElement('button'); g.type = 'button'; g.className = 'fold-perm'; g.textContent = 'Klasöre erişime izin ver';
-      g.addEventListener('click', async () => { if (await window.desktop.grantFolder(dir)) { delete folderCache[dir]; buildRecent(); } });
+      cnt.textContent = od ? 'giriş gerekli' : 'izin gerekli';
+      const g = document.createElement('button'); g.type = 'button'; g.className = 'fold-perm'; g.textContent = od ? 'OneDrive\'a giriş yap' : 'Klasöre erişime izin ver';
+      g.addEventListener('click', async () => { if (await srcOf(dir).grantFolder(dir)) { delete folderCache[dir]; buildRecent(); } });
       body.appendChild(g); return;
     }
-    cnt.textContent = res.files.length + (res.truncated ? '+' : '') + ' PDF';
+    if (res.error) { cnt.textContent = 'okunamadı'; body.appendChild(sideEmpty(res.error)); return; }
+    cnt.textContent = res.files.length + (res.truncated ? '+' : '') + ' PDF' + (res.offline ? ' · çevrimdışı' : '');
     if (!res.files.length) body.appendChild(sideEmpty('Bu klasörde PDF yok.'));
     for (const f of res.files) body.appendChild(recItem(f.path, f.name.replace(/\.pdf$/i, ''), f.rel));
     applyFilter();
   };
   if (folderCache[dir]) fill(folderCache[dir]); else cnt.textContent = 'taranıyor…';
   // Her açılışta yeniden taranır (yeni eklenen sunumlar görünsün); önceki sonuç beklerken gösterilir.
-  window.desktop.listPdfs(dir).then((res) => { folderCache[dir] = res; if (box.isConnected) fill(res); }).catch((err) => { console.error(err); cnt.textContent = 'okunamadı'; });
+  srcOf(dir).listPdfs(dir).then((res) => { folderCache[dir] = res; if (box.isConnected) fill(res); }).catch((err) => { console.error(err); cnt.textContent = 'okunamadı'; });
   return box;
 }
 async function addFolder() {
-  if (window.desktop.canPickFolder === false) { toast('Bu cihazda klasör eklenemiyor. OneDrive bağlantısı gelince klasörlerin burada da görünecek.'); return; }
+  if (window.desktop.canPickFolder === false) { addOneDrive(); return; }
   let dir = null; try { dir = await window.desktop.pickFolder(); } catch (e) { console.error(e); }
+  folderAdded(dir);
+}
+// OneDrive: gerekirse Microsoft ile giriş, sonra klasör seçici. Seçicide tek bir PDF'e dokunulursa o açılır.
+async function addOneDrive() {
+  if (!OD) return;
+  if (!OD.configured()) { toast('OneDrive için önce Ayarlar → OneDrive\'da uygulama kimliğini gir.'); settingsDrawer.open(); $('#odAdv').open = true; setTimeout(() => $('#secOd').scrollIntoView({ block: 'start', behavior: 'smooth' }), 260); return; }
+  recentDrawer.close();
+  let dir = null;
+  try { dir = await OD.pickFolder((p) => openRecent(p)); } catch (e) { console.error(e); toast(e.message || 'OneDrive açılamadı.'); return; }
+  folderAdded(dir);
+}
+function folderAdded(dir) {
   if (!dir) return;
+  recentDrawer.open();
   const isNew = !store.folders.includes(dir);
   if (isNew) store.folders.push(dir);
   store.foldOpen[dir] = true; sideTab = 'folders'; persistView(); buildRecent();
   const box = [...document.querySelectorAll('#recentList .fold')].find((b) => b.dataset.dir === dir);
   if (box) { box.scrollIntoView({ block: 'nearest' }); if (isNew) renameFolder(box); }
 }
+// Ayarlar → OneDrive: hesap durumu, giriş/çıkış ve uygulama kaydı (istemci kimliği, kiracı).
+function syncOneDrive() {
+  if (!OD) { $('#secOd').hidden = true; return; }
+  const acc = OD.account(), cfg = OD.config(), on = OD.signedIn();
+  $('#odState').textContent = !cfg.clientId ? 'Önce aşağıdaki "Uygulama kaydı"na kimliği gir.' : on ? 'Bağlı: ' + ((acc && (acc.user || acc.name)) || 'Microsoft hesabı') : 'Bağlı değil.';
+  $('#odLogin').hidden = on; $('#odLogin').disabled = !cfg.clientId; $('#odLogout').hidden = !on;
+  $('#odCfgState').textContent = cfg.clientId ? 'hazır' : 'gerekli';
+  if (document.activeElement !== $('#odClient')) $('#odClient').value = cfg.builtin && !cfg.custom ? '' : cfg.clientId;
+  if (document.activeElement !== $('#odTenant')) $('#odTenant').value = cfg.tenant === 'organizations' ? '' : cfg.tenant;
+  $('#odRedirect').textContent = OD.redirectUri;
+}
+if (OD) {
+  OD.onChange(() => { syncOneDrive(); for (const k of Object.keys(folderCache)) if (OD.owns(k)) delete folderCache[k]; if (recentDrawer.isOpen()) buildRecent(); });
+  $('#odLogin').addEventListener('click', async () => { try { if (await OD.signIn()) toast('OneDrive bağlandı. Klasörlerim → + OneDrive ile klasör ekleyebilirsin.'); } catch (e) { console.error(e); toast(e.message || 'Giriş yapılamadı.'); } });
+  $('#odLogout').addEventListener('click', () => { OD.signOut(); toast('OneDrive oturumu kapatıldı. Açılmış sunumların kopyaları bu cihazda kalır.'); });
+  $('#odCfgSave').addEventListener('click', () => {
+    const id = $('#odClient').value.trim(), tn = $('#odTenant').value.trim();
+    if (id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) { toast('Uygulama kimliği 8-4-4-4-12 biçiminde olmalı (ör. 1a2b3c4d-…).'); return; }
+    OD.setConfig({ clientId: id, tenant: tn }); toast(OD.configured() ? 'Kaydedildi. Şimdi "Giriş yap"a bas.' : 'Uygulama kimliği silindi.');
+  });
+}
+syncOneDrive();
 // Klasör adını yerinde düzenle: Enter kaydeder, Esc vazgeçer, boş bırakılırsa klasörün kendi adına döner.
 function renameFolder(box) {
   const dir = box.dataset.dir, nm = box.querySelector('.fold-h b'); if (!nm) return;
@@ -1302,7 +1351,7 @@ $('#fileFilter').addEventListener('input', applyFilter);
 async function openRecent(p) {
   recentDrawer.close();
   if (p === state.path || cur || loading) return;
-  let f = null; try { f = await window.desktop.readPdf(p); } catch (e) { console.error(e); }
+  let f = null; try { f = await srcOf(p).readPdf(p); } catch (e) { console.error(e); }
   if (!f) { toast('Dosya bulunamadı, listeden kaldırıldı.'); delete store.positions[p]; persistView(); return; }
   await loadPdf(f.bytes, f.name, false, f.path);
 }
@@ -1686,20 +1735,28 @@ window.desktop.onOpenFile((f) => { if (f) loadPdf(f.bytes, f.name, false, f.path
     syncUi();
   } catch (e) { console.error(e); }
   let f = await window.desktop.getInitialFile();
-  if (!f && store.last) f = await window.desktop.readPdf(store.last);
+  if (!f && store.last) { try { f = await srcOf(store.last).readPdf(store.last); } catch (e) { console.error(e); } }
   ready = true;
   if (f) await loadPdf(f.bytes, f.name, false, f.path);
   else await loadPdf(await makeSample(), 'kareli-sayfa.pdf', true);
   viewer.focus();
+  // Web: Microsoft girişinden dönüldüyse kalınan yerden devam (klasör seçici ya da listeyi yenile).
+  if (OD) OD.ready.then((r) => {
+    if (r === 'pick') addOneDrive();
+    else if (r === 'list') { for (const k of Object.keys(folderCache)) delete folderCache[k]; recentDrawer.open(); buildRecent(); }
+    else if (r === 'error') toast(OD.lastError() || 'OneDrive girişi tamamlanamadı.');
+  });
 })();
 /* ---------- Kuzey Yıldızı: sunumdan bağımsız, ekranda sabit duran not/formül kartı ----------
    Sayfa değişse, yakınlaştırılsa da yerinde kalır. Kalem yazar (aynı mürekkep motoru, gökkuşağı dahil), kalemin
-   silgi ucu siler, parmak kartı taşır. Sağ alt köşeden büyütülür; yazı kartla birlikte ölçeklenir.
+   silgi ucu siler, parmak kartı taşır. Sağ alt köşeden büyütülür ya da küçültülür; yazının boyu değişmez.
    İçerik her PDF için ayrı saklanır; yeri, boyutu ve açık/kapalı durumu hatırlanır. */
-const NS_BASE = 600; // kartın içerik genişliği (birim); ekrandaki genişlik / NS_BASE = ölçek
+const NS_BASE = 600; // eski kayıtlar: kartın içerik genişliği (birim), ölçek = kart genişliği / NS_BASE idi
 const nsEl = $('#nstar'), nsCv = $('#nsInk'), nsBox = { x: 0.5, y: 100, w: 520, h: 190 };
 const ns = { on: false, objs: [], undo: [], cur: null, hasRb: false, key: '', saveT: 0 };
-function nsScale() { return nsCv.clientWidth / NS_BASE || 1; }
+// Yazı, slaytın normal (ekrana tam sığan) görünümüyle aynı ölçekte çizilir: kartta yazılan slayta yazılanla aynı
+// büyüklükte görünür. Kart büyüyüp küçülünce yazı ölçeklenmez; yalnızca görünen alan değişir.
+function nsScale() { return state.pages.length ? autoScale(state.pages) : 1; }
 function nsPlace() {
   const W = innerWidth, H = innerHeight;
   const w = clamp(nsBox.w, 220, W - 16), h = clamp(nsBox.h, 120, H - 50);
@@ -1732,13 +1789,20 @@ function nsSaveSoon() {
   clearTimeout(ns.saveT); const key = ns.key; if (!key) return;
   const r = (v) => Math.round(v * 100) / 100;
   ns.saveT = setTimeout(() => {
-    const json = JSON.stringify(ns.objs.map((o) => ({ t: o.t, k: o.k, c: o.c, w: o.w, pts: o.pts.map((q) => [r(q[0]), r(q[1]), r(q[2])]) })));
+    const json = JSON.stringify({ v: 2, objs: ns.objs.map((o) => ({ t: o.t, k: o.k, c: o.c, w: o.w, pts: o.pts.map((q) => [r(q[0]), r(q[1]), r(q[2])]) })) });
     try { window.desktop.saveInk(key, json); } catch (e) {}
   }, 500);
 }
 async function nsLoad() {
   ns.key = inkKey() + '#kuzey-yildizi'; ns.objs = []; ns.undo = []; ns.cur = null;
-  try { const j = await window.desktop.loadInk(ns.key); if (j) ns.objs = JSON.parse(j).filter((o) => o && Array.isArray(o.pts) && o.pts.length); } catch (e) { ns.objs = []; }
+  try {
+    const j = await window.desktop.loadInk(ns.key), d = j ? JSON.parse(j) : null;
+    let objs = Array.isArray(d) ? d : d && Array.isArray(d.objs) ? d.objs : [];
+    objs = objs.filter((o) => o && Array.isArray(o.pts) && o.pts.length);
+    // Eski kayıt (kartla ölçeklenen yazı): ekranda aynı büyüklükte kalacak şekilde yeni ölçeğe çevrilir.
+    if (Array.isArray(d)) { const f = (clamp(nsBox.w, 220, innerWidth - 16) - 4) / NS_BASE / nsScale(); for (const o of objs) { o.w *= f; for (const q of o.pts) { q[0] *= f; q[1] *= f; } } }
+    ns.objs = objs;
+  } catch (e) { ns.objs = []; }
   nsRender(); nsHist();
 }
 function nsHist() { $('#nsUndo').disabled = !ns.undo.length; $('#nsClear').disabled = !ns.objs.length; }
@@ -1767,7 +1831,7 @@ function nsAdd(e, p) {
   let pr = pen && state.hasPressure ? (e.pressure > 0 ? e.pressure : 0.05) : 0.6;
   pr = Math.pow(clamp(pr, 0, 1), pressGamma()); c.ps = c.ps == null ? pr : c.ps + (pr - c.ps) * 0.5;
   const last = o.pts[o.pts.length - 1];
-  if (last && Math.hypot(p[0] - last[0], p[1] - last[1]) < 0.4) { last[2] = inkFactor(o.k, c.ps, 0); return; }
+  if (last && Math.hypot(p[0] - last[0], p[1] - last[1]) < 0.35 / nsScale()) { last[2] = inkFactor(o.k, c.ps, 0); return; }
   o.pts.push([p[0], p[1], inkFactor(o.k, c.ps, 0)]); delete o._S;
 }
 nsCv.addEventListener('pointermove', (e) => {

@@ -52,7 +52,11 @@ public class PdfKalemiPlugin extends Plugin {
     @SuppressWarnings("deprecation")
     private static Uri pdfUri(Intent i) {
         if (i == null) return null;
-        if (Intent.ACTION_VIEW.equals(i.getAction())) return i.getData();
+        if (Intent.ACTION_VIEW.equals(i.getAction())) {
+            // Yalnızca dosyalar; OneDrive girişinin dönüş bağlantısı (io.github.ufukasia.pdfkalemi://auth) PDF değildir.
+            Uri d = i.getData();
+            return d != null && ("content".equals(d.getScheme()) || "file".equals(d.getScheme())) ? d : null;
+        }
         if (Intent.ACTION_SEND.equals(i.getAction())) return (Uri) i.getParcelableExtra(Intent.EXTRA_STREAM);
         return null;
     }

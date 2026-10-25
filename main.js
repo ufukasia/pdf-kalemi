@@ -51,6 +51,34 @@ else {
   app.on('window-all-closed', () => app.quit());
 }
 
+// OneDrive girişi: Microsoft'un giriş sayfası ayrı bir pencerede açılır (oturum çerezleri kendi bölmesinde kalır);
+// dönüş adresine yönlenince kod alınır ve pencere kapanır. Pencere kapatılırsa null döner.
+ipcMain.handle('od-auth', (_e, url, redirect) => new Promise((resolve) => {
+  if (typeof url !== 'string' || !url.startsWith('https://login.microsoftonline.com/') || typeof redirect !== 'string' || !redirect.startsWith('https://login.microsoftonline.com/')) { resolve(null); return; }
+  const w = new BrowserWindow({
+    parent: win || undefined, modal: !!win, width: 520, height: 720, title: 'Microsoft ile giriş', autoHideMenuBar: true,
+    backgroundColor: '#ffffff', webPreferences: { partition: 'persist:onedrive', contextIsolation: true, nodeIntegration: false, sandbox: true }
+  });
+  let done = false;
+  const finish = (u) => { if (done) return; done = true; resolve(u); if (!w.isDestroyed()) w.close(); };
+  const check = (e, u) => { if (typeof u === 'string' && u.startsWith(redirect)) { e.preventDefault(); finish(u); } };
+  w.webContents.on('will-redirect', check); w.webContents.on('will-navigate', check);
+  w.webContents.setWindowOpenHandler(({ url: u }) => { if (/^https?:/i.test(u)) shell.openExternal(u); return { action: 'deny' }; });
+  w.on('closed', () => finish(null));
+  w.loadURL(url).catch(() => {});
+}));
+// OneDrive / Microsoft Graph istekleri ana süreçten yapılır (tarayıcının çapraz kaynak kısıtları olmadan).
+// Yalnızca Microsoft'un giriş, Graph ve dosya indirme adreslerine izin verilir.
+const OD_HOSTS = /(^|\.)(login\.microsoftonline\.com|graph\.microsoft\.com|sharepoint\.com|1drv\.com|onedrive\.com|live\.com|svc\.ms)$/i;
+ipcMain.handle('od-http', async (_e, req) => {
+  try {
+    const u = new URL(String(req && req.url));
+    if (u.protocol !== 'https:' || !OD_HOSTS.test(u.hostname)) return { error: 'izin verilmeyen adres' };
+    const r = await fetch(u, { method: req.method || 'GET', headers: req.headers || {}, body: req.body || undefined, redirect: 'follow', signal: AbortSignal.timeout(req.bin ? 300000 : 30000) });
+    if (req.bin && r.ok) return { status: r.status, bytes: new Uint8Array(await r.arrayBuffer()) };
+    return { status: r.status, text: await r.text() };
+  } catch (err) { return { error: String(err && err.message || err) }; }
+});
 // PDF içindeki web bağlantıları varsayılan tarayıcıda açılır; yalnızca http(s) ve e-posta.
 ipcMain.handle('open-external', (_e, url) => { if (typeof url === 'string' && /^(https?:|mailto:)/i.test(url)) shell.openExternal(url); return true; });
 // Aktar balonu: görüntüyü panoya kopyalar ve seçilen yapay zekâyı açar; göndermeyi kullanıcı orada kendisi yapar.
