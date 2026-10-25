@@ -1461,7 +1461,7 @@ function writeState() {
     const keys = Object.keys(store.positions); if (keys.length > 60) { keys.sort((a, b) => store.positions[a].at - store.positions[b].at); delete store.positions[keys[0]]; }
   }
   store.prefs = { tool: state.tool, colors: state.colors, sizes: state.sizes, touchDraw: state.touchDraw, nib: state.nib, press: state.press, hasPressure: state.hasPressure, opts: state.opts, pinBar: !!state.pinBar,
-    nstar: { on: ns.on, x: +nsBox.x.toFixed(4), y: Math.round(nsBox.y), w: Math.round(nsBox.w), h: Math.round(nsBox.h) } };
+    nstar: { on: ns.on, fold: ns.fold, x: +nsBox.x.toFixed(4), y: Math.round(nsBox.y), w: Math.round(nsBox.w), h: Math.round(nsBox.h) } };
   return store;
 }
 function inkJson() {
@@ -1728,7 +1728,7 @@ window.desktop.onOpenFile((f) => { if (f) loadPdf(f.bytes, f.name, false, f.path
     if (p.colors) Object.assign(state.colors, p.colors); if (p.sizes) Object.assign(state.sizes, p.sizes);
     if (p.tool && TOOLS[p.tool]) state.tool = p.tool; if (p.touchDraw) state.touchDraw = true;
     if (p.pinBar) setPin(true);
-    if (p.nstar && typeof p.nstar === 'object') { for (const k of ['x', 'y', 'w', 'h']) if (typeof p.nstar[k] === 'number') nsBox[k] = p.nstar[k]; if (p.nstar.on) nsShow(true); }
+    if (p.nstar && typeof p.nstar === 'object') { for (const k of ['x', 'y', 'w', 'h']) if (typeof p.nstar[k] === 'number') nsBox[k] = p.nstar[k]; if (p.nstar.fold) nsFold(true); if (p.nstar.on) nsShow(true); }
     if (p.opts && typeof p.opts === 'object') for (const k of Object.keys(state.opts)) if (typeof p.opts[k] === typeof state.opts[k]) state.opts[k] = p.opts[k];
     applyOpts(); syncOpts();
     if (p.nib && NIBS[p.nib]) state.nib = p.nib; if (typeof p.press === 'number') state.press = clamp(p.press, 0, 100); if (p.hasPressure) state.hasPressure = true;
@@ -1753,7 +1753,8 @@ window.desktop.onOpenFile((f) => { if (f) loadPdf(f.bytes, f.name, false, f.path
    İçerik her PDF için ayrı saklanır; yeri, boyutu ve açık/kapalı durumu hatırlanır. */
 const NS_BASE = 600; // eski kayıtlar: kartın içerik genişliği (birim), ölçek = kart genişliği / NS_BASE idi
 const nsEl = $('#nstar'), nsCv = $('#nsInk'), nsBox = { x: 0.5, y: 100, w: 520, h: 190 };
-const ns = { on: false, objs: [], undo: [], cur: null, hasRb: false, key: '', saveT: 0 };
+// fold: notlar kapalı, yalnızca yıldız ekranda (yıldıza dokununca açılıp kapanır).
+const ns = { on: false, fold: false, objs: [], undo: [], cur: null, hasRb: false, key: '', saveT: 0 };
 // Yazı, slaytın normal (ekrana tam sığan) görünümüyle aynı ölçekte çizilir: kartta yazılan slayta yazılanla aynı
 // büyüklükte görünür. Kart büyüyüp küçülünce yazı ölçeklenmez; yalnızca görünen alan değişir.
 function nsScale() { return state.pages.length ? autoScale(state.pages) : 1; }
@@ -1770,7 +1771,7 @@ function nsFit() {
   nsRender();
 }
 function nsRender() {
-  if (!ns.on) return;
+  if (!ns.on || ns.fold) return;
   const c = nsCv.getContext('2d'), d = devicePixelRatio || 1, s = nsScale();
   c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, nsCv.width, nsCv.height); c.setTransform(d * s, 0, 0, d * s, 0, 0);
   ns.hasRb = false;
@@ -1778,12 +1779,20 @@ function nsRender() {
   if (ns.cur && ns.cur.o) { if (ns.cur.o.c === RAINBOW) ns.hasRb = true; drawObj(c, ns.cur.o); }
   if (ns.hasRb) rainbowLoop();
 }
-function nsAnimating() { return ns.on && ns.hasRb && !document.hidden; }
+function nsAnimating() { return ns.on && !ns.fold && ns.hasRb && !document.hidden; }
 function nsShow(on) {
   ns.on = !!on; nsEl.hidden = !ns.on; $('#btnStar').setAttribute('aria-pressed', String(ns.on)); $('#optStar').checked = ns.on;
   if (ns.on) nsPlace(); persistView();
 }
-function nsToggle() { nsShow(!ns.on); }
+function nsToggle() { if (!ns.on) nsFold(false); nsShow(!ns.on); }
+// Yıldıza dokunmak notları açar/kapatır; yıldız yerinde kalır. Kapalıyken sunum alanı tamamen açıktır.
+function nsFold(f) {
+  ns.fold = !!f; nsEl.classList.toggle('folded', ns.fold);
+  $('#nsStarIcon').setAttribute('aria-expanded', String(!ns.fold));
+  if (ns.fold && ns.cur) ns.cur = null;
+  if (ns.on && !ns.fold) nsPlace();
+  persistView();
+}
 // İçerik: PDF'in mürekkebiyle aynı yerde, ayrı bir anahtarla saklanır.
 function nsSaveSoon() {
   clearTimeout(ns.saveT); const key = ns.key; if (!key) return;
@@ -1855,18 +1864,20 @@ $('#nsUndo').addEventListener('click', () => {
   nsRender(); nsHist(); nsSaveSoon();
 });
 $('#nsClear').addEventListener('click', () => { if (!ns.objs.length) return; nsPush({ k: 'clear', objs: ns.objs.slice() }); ns.objs = []; nsRender(); nsHist(); toast('Kuzey Yıldızı temizlendi. Geri almak için ↶ düğmesine bas.'); });
-$('#nsClose').addEventListener('click', () => nsShow(false));
+$('#nsClose').addEventListener('click', () => nsFold(true));
 // Taşıma: üst şerit, yıldız ya da parmakla kartın herhangi bir yeri. Büyütme: sağ alt köşe.
 function nsDrag(handle, resize) {
   handle.addEventListener('pointerdown', (e) => {
     if (handle === nsCv && !(e.pointerType === 'touch' && !state.touchDraw)) return;
     if (handle !== nsCv && e.target.closest && e.target.closest('button')) return;
     e.preventDefault(); e.stopPropagation(); try { handle.setPointerCapture(e.pointerId); } catch (err) {}
-    const r = nsEl.getBoundingClientRect(), d = { id: e.pointerId, sx: e.clientX, sy: e.clientY, r };
+    const r = nsEl.getBoundingClientRect(), d = { id: e.pointerId, sx: e.clientX, sy: e.clientY, r, moved: false };
     nsEl.classList.add(resize ? 'sizing' : 'moving');
     const move = (ev) => {
       if (ev.pointerId !== d.id) return;
       const dx = ev.clientX - d.sx, dy = ev.clientY - d.sy;
+      if (!d.moved && Math.hypot(dx, dy) < 6) return; // küçük kıpırtı: dokunuş sayılır
+      d.moved = true;
       if (resize) { nsBox.w = d.r.width + dx; nsBox.h = d.r.height + dy; nsBox.x = (d.r.left + clamp(nsBox.w, 220, innerWidth - 16) / 2) / innerWidth; }
       else { nsBox.x = (d.r.left + dx + d.r.width / 2) / innerWidth; nsBox.y = d.r.top + dy; }
       nsPlace();
@@ -1875,11 +1886,13 @@ function nsDrag(handle, resize) {
       if (ev.pointerId !== d.id) return;
       handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', up); handle.removeEventListener('pointercancel', up);
       nsEl.classList.remove('sizing', 'moving'); const r2 = nsEl.getBoundingClientRect(); nsBox.w = r2.width; nsBox.h = r2.height; persistView();
+      if (!d.moved && ev.type === 'pointerup' && handle.id === 'nsStarIcon') nsFold(!ns.fold);
     };
     handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', up); handle.addEventListener('pointercancel', up);
   });
 }
 nsDrag($('#nsBar'), false); nsDrag($('#nsStarIcon'), false); nsDrag(nsCv, false); nsDrag($('#nsSize'), true);
+$('#nsStarIcon').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); nsFold(!ns.fold); } });
 $('#btnStar').addEventListener('click', nsToggle);
 $('#optStar').addEventListener('change', (e) => nsShow(e.target.checked));
 window.addEventListener('resize', () => { if (ns.on) nsPlace(); });

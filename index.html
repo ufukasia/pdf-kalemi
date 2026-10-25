@@ -246,6 +246,12 @@ body.pinned #curtain.open #bar { box-shadow: none; border-bottom: 1px solid var(
 #nstar { position: fixed; z-index: 8; display: flex; flex-direction: column; background: #fffdf4; color: #1d1d1f; border-radius: 18px; border: 2px solid #ffd60a;
   box-shadow: 0 12px 34px rgba(0, 0, 0, .38), 0 0 0 4px rgba(255, 214, 10, .18); touch-action: none; }
 #nstar[hidden] { display: none; }
+/* Notlar kapalı: yalnızca yıldız kalır; sunum alanı tamamen açık. Yıldıza dokununca notlar geri gelir. */
+#nstar > :not(#nsStarIcon) { transition: opacity .16s ease; }
+#nstar { transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease; }
+#nstar.folded { background: transparent; border-color: transparent; box-shadow: none; pointer-events: none; }
+#nstar.folded > :not(#nsStarIcon) { opacity: 0; visibility: hidden; transition: opacity .16s ease, visibility 0s .16s; }
+#nstar.folded #nsStarIcon { pointer-events: auto; cursor: pointer; }
 #nstar.moving, #nstar.sizing { box-shadow: 0 16px 44px rgba(0, 0, 0, .45), 0 0 0 4px rgba(255, 214, 10, .35); }
 #nsStarIcon { position: absolute; left: 50%; top: -34px; width: 62px; height: 62px; transform: translateX(-50%); cursor: grab; filter: drop-shadow(0 0 8px rgba(255, 214, 10, .85)) drop-shadow(0 3px 6px rgba(0, 0, 0, .3)); touch-action: none; z-index: 1; }
 #nsBar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 34px; padding: 0 6px 0 14px; cursor: grab; touch-action: none; }
@@ -640,12 +646,12 @@ html, body { overscroll-behavior: none; }
   <span class="lbl" aria-hidden="true"></span>
 </button>
 <section id="nstar" aria-label="Kuzey Yıldızı" hidden>
-  <svg id="nsStarIcon" class="nsBig" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="nsBigRb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff2d55"/><stop offset=".2" stop-color="#ff9f0a"/><stop offset=".4" stop-color="#ffd60a"/><stop offset=".6" stop-color="#30d158"/><stop offset=".8" stop-color="#0ac8ff"/><stop offset="1" stop-color="#bf5af2"/><animateTransform attributeName="gradientTransform" type="rotate" from="0 .5 .5" to="360 .5 .5" dur="3s" repeatCount="indefinite"/></linearGradient></defs><path d="M32 5l8 17.2 18.8 2.2-13.9 12.9 3.7 18.6L32 46.6 15.4 55.9l3.7-18.6L5.2 24.4 24 22.2z" fill="#ffd60a" stroke="url(#nsBigRb)" stroke-width="5" stroke-linejoin="round"/></svg>
+  <svg id="nsStarIcon" class="nsBig" viewBox="0 0 64 64" role="button" tabindex="0" aria-expanded="true" aria-label="Notları aç veya kapat"><title>Dokun: notları aç/kapat · Sürükle: taşı</title><defs><linearGradient id="nsBigRb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff2d55"/><stop offset=".2" stop-color="#ff9f0a"/><stop offset=".4" stop-color="#ffd60a"/><stop offset=".6" stop-color="#30d158"/><stop offset=".8" stop-color="#0ac8ff"/><stop offset="1" stop-color="#bf5af2"/><animateTransform attributeName="gradientTransform" type="rotate" from="0 .5 .5" to="360 .5 .5" dur="3s" repeatCount="indefinite"/></linearGradient></defs><path d="M32 5l8 17.2 18.8 2.2-13.9 12.9 3.7 18.6L32 46.6 15.4 55.9l3.7-18.6L5.2 24.4 24 22.2z" fill="#ffd60a" stroke="url(#nsBigRb)" stroke-width="5" stroke-linejoin="round"/></svg>
   <div id="nsBar"><b>Kuzey Yıldızı</b>
     <span class="ns-btns">
       <button id="nsUndo" type="button" title="Geri al" aria-label="Kartta geri al" disabled><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
       <button id="nsClear" type="button" title="Temizle (geri alınabilir)" aria-label="Kartı temizle" disabled><svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg></button>
-      <button id="nsClose" type="button" title="Gizle (N)" aria-label="Kartı gizle"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button id="nsClose" type="button" title="Notları kapat (yıldız kalır; yıldıza dokununca açılır)" aria-label="Notları kapat"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </span>
   </div>
   <canvas id="nsInk"></canvas>

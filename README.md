@@ -72,6 +72,7 @@ PDF Kalemi, ders slaytlarını ve PDF belgelerini **Surface Pen ile kâğıda ya
 ### ⭐ Kuzey Yıldızı kartı
 - Derste öğrencilerin aklında kalması gereken formül ya da not için, **sayfalardan bağımsız, ekranda sabit duran** bir kart. Slayt değişse, sayfa yakınlaştırılsa da yerinde kalır.
 - Üst ortasında sarı, çevresi gökkuşağı renkli bir yıldız vardır. Üzerine kalemle yazılır (gökkuşağı rengi dahil), kalemin arka ucuyla silinir.
+- **Yıldıza dokununca notlar kapanır, yıldız ekranda kalır**; sunum alanı tamamen açılır. Tekrar dokununca notlar geri gelir. Yıldız sürüklenerek taşınır.
 - Sağ alt köşesinden büyütülüp küçültülür; **yazının boyu değişmez**, slayta yazılanla aynı büyüklükte görünür (kart büyüyünce yalnızca yazacak yer açılır). Parmakla ya da üst şeridinden tutularak taşınır.
 - Araç çubuğundaki ⭐ düğmesi, `N` kısayolu ya da Ayarlar → Sunum ile açılıp kapanır. İçeriği her PDF için ayrı saklanır.
 
